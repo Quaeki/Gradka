@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Грядка — фермерский магазин · Android</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="ui.jsx"></script>
+<script type="text/babel" src="screens-shop.jsx"></script>
+<script type="text/babel" src="screens-flow.jsx"></script>
+<style>
+body { min-height: 100vh; background: var(--bg-canvas, #e8e4db); }
+.canvas { min-height: 100vh; padding: 40px 32px 120px; display: flex; gap: 48px; flex-wrap: wrap; align-items: flex-start; }
+.phone-col { display: flex; flex-direction: column; gap: 0; }
+.col-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6a6a62; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+.col-label b { display: block; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: #1a1a17; letter-spacing: -0.01em; text-transform: none; margin-bottom: 3px; }
+
+/* tweaks */
+.tp { position: fixed; bottom: 28px; right: 28px; width: 270px; background: #fff; border: 1px solid #e5e2d8; border-radius: 18px; padding: 18px; box-shadow: 0 12px 48px rgba(0,0,0,0.14); z-index: 999; font-family: 'Inter', sans-serif; font-size: 13px; color: #1a1a17; }
+.tp-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #8a8a82; font-weight: 700; margin-bottom: 14px; }
+.tp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 13px; color: #4a4a44; }
+.tp-row:last-child { margin-bottom: 0; }
+.tp-seg { display: flex; background: #f2efe8; border-radius: 9px; padding: 3px; gap: 3px; }
+.tp-seg button { border: 0; background: transparent; padding: 6px 10px; border-radius: 6px; font-size: 12px; color: #4a4a44; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.tp-seg button.on { background: #fff; color: #1a1a17; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "light",
+  "homeVariant": "A",
+  "density": "normal"
+}/*EDITMODE-END*/;
+
+function App() {
+  // ── tweaks state ──
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+
+  const setTweak = (k, v) => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // ── shared app state (shared across all phone instances) ──
+  const [cart, setCart] = React.useState({});
+  const [favs, setFavs] = React.useState(new Set());
+  const [catFilter, setCatFilter] = React.useState('all');
+
+  const addToCart = (id) => setCart(c => ({ ...c, [id]: (c[id] || 0) + 1 }));
+  const subFromCart = (id) => setCart(c => { const n = (c[id] || 0) - 1; return n <= 0 ? (({ [id]: _, ...rest }) => rest)(c) : { ...c, [id]: n }; });
+  const toggleFav = (id) => setFavs(f => { const s = new Set(f); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const cartCount = Object.values(cart).reduce((s, v) => s + v, 0);
+
+  const dark = tweaks.theme === 'dark';
+
+  // ── Phone instance factory ──
+  function PhoneInstance({ label, sublabel, initRoute, initVariant }) {
+    const [route, setRouteRaw] = React.useState(initRoute || 'onboarding');
+    const [productId, setProductId] = React.useState(null);
+    const [history, setHistory] = React.useState([]);
+
+    const setRoute = (r) => {
+      setHistory(h => [...h, route]);
+      setRouteRaw(r);
+    };
+    const back = () => {
+      const h = [...history];
+      const prev = h.pop() || 'home';
+      setHistory(h);
+      setRouteRaw(prev);
+    };
+    const openProduct = (id) => { setProductId(id); setRoute('product'); };
+    const placeOrder = () => { setCart({}); setRoute('success'); };
+
+    const app = { route, setRoute, back, cart, addToCart, subFromCart, favs, toggleFav, cartCount, catFilter, setCatFilter, productId, openProduct, placeOrder };
+
+    const renderScreen = () => {
+      switch (route) {
+        case 'onboarding': return <OnboardingScreen app={app}/>;
+        case 'home':
+          if (initVariant === 'B' || tweaks.homeVariant === 'B') return <><HomeB app={app}/><BottomNav route="home" setRoute={setRoute} cartCount={cartCount}/></>;
+          if (initVariant === 'C' || tweaks.homeVariant === 'C') return <><HomeC app={app}/><BottomNav route="home" setRoute={setRoute} cartCount={cartCount}/></>;
+          return <><HomeA app={app}/><BottomNav route="home" setRoute={setRoute} cartCount={cartCount}/></>;
+        case 'catalog': return <><CatalogScreen app={app}/><BottomNav route="catalog" setRoute={setRoute} cartCount={cartCount}/></>;
+        case 'search': return <SearchScreen app={app}/>;
+        case 'product': return <ProductScreen app={app}/>;
+        case 'cart': return <><CartScreen app={app}/><BottomNav route="cart" setRoute={setRoute} cartCount={cartCount}/></>;
+        case 'checkout': return <CheckoutScreen app={app}/>;
+        case 'tracking': return <TrackingScreen app={app}/>;
+        case 'address': return <AddressScreen app={app}/>;
+        case 'fav': return <><FavScreen app={app}/><BottomNav route="fav" setRoute={setRoute} cartCount={cartCount}/></>;
+        case 'profile': return <><ProfileScreen app={app}/><BottomNav route="profile" setRoute={setRoute} cartCount={cartCount}/></>;
+        case 'orders': return <OrdersScreen app={app}/>;
+        case 'recipes': return <RecipesScreen app={app}/>;
+        case 'success': return <SuccessScreen app={app}/>;
+        default: return <HomeA app={app}/>;
+      }
+    };
+
+    return (
+      <div className="phone-col">
+        <div className="col-label"><b>{label}</b>{sublabel}</div>
+        <Phone dark={dark}>
+          <div className="screen-fade" key={route} style={{ minHeight: '100%', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+            {renderScreen()}
+          </div>
+        </Phone>
+      </div>
+    );
+  }
+
+  const variant = tweaks.homeVariant;
+
+  return (
+    <div data-theme={dark ? 'dark' : 'light'} style={{ background: dark ? '#0a0a08' : '#e8e4db', minHeight: '100vh' }}>
+      <div className="canvas">
+        {/* Phone 1 – Онбординг → Главная (вариант A) */}
+        <PhoneInstance
+          label="Главная · Вариант A"
+          sublabel="Редакторский стиль · просторно"
+          initRoute="onboarding"
+          initVariant="A"
+        />
+        {/* Phone 2 – Главная вариант B (компактный) */}
+        <PhoneInstance
+          label="Главная · Вариант B"
+          sublabel="Плотный · рыночный стиль"
+          initRoute="home"
+          initVariant="B"
+        />
+        {/* Phone 3 – Главная вариант C (журнальный) */}
+        <PhoneInstance
+          label="Главная · Вариант C"
+          sublabel="Журнальный · эдиториал"
+          initRoute="home"
+          initVariant="C"
+        />
+        {/* Phone 4 – Каталог + Карточка товара */}
+        <PhoneInstance
+          label="Каталог · Карточка"
+          sublabel="Фильтрация по категориям"
+          initRoute="catalog"
+          initVariant="A"
+        />
+        {/* Phone 5 – Корзина → Оформление */}
+        <PhoneInstance
+          label="Корзина · Оформление"
+          sublabel="Рабочая корзина — добавляй товары"
+          initRoute="cart"
+          initVariant="A"
+        />
+        {/* Phone 6 – Трекинг курьера */}
+        <PhoneInstance
+          label="Отслеживание"
+          sublabel="Курьер на карте · статусы"
+          initRoute="tracking"
+          initVariant="A"
+        />
+        {/* Phone 7 – Профиль */}
+        <PhoneInstance
+          label="Профиль · Заказы"
+          sublabel="Лояльность · история"
+          initRoute="profile"
+          initVariant="A"
+        />
+        {/* Phone 8 – Рецепты */}
+        <PhoneInstance
+          label="Рецепты"
+          sublabel="Ингредиенты в корзину"
+          initRoute="recipes"
+          initVariant="A"
+        />
+      </div>
+
+      {/* Tweaks panel */}
+      {tweaksOpen && (
+        <div className="tp">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="tp-title" style={{ marginBottom: 0 }}>Tweaks</div>
+            <button onClick={() => { setTweaksOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); }} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 18, color: '#8a8a82', lineHeight: 1, fontFamily: 'inherit' }}>×</button>
+          </div>
+
+          <div className="tp-row">
+            <span>Тема</span>
+            <div className="tp-seg">
+              {['light','dark'].map(v => <button key={v} className={tweaks.theme === v ? 'on' : ''} onClick={() => setTweak('theme', v)}>{v === 'light' ? '☀ Светлая' : '◑ Тёмная'}</button>)}
+            </div>
+          </div>
+
+          <div className="tp-row">
+            <span>Главная</span>
+            <div className="tp-seg">
+              {['A','B','C'].map(v => <button key={v} className={tweaks.homeVariant === v ? 'on' : ''} onClick={() => setTweak('homeVariant', v)}>{v}</button>)}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #e5e2d8', fontSize: 11, color: '#8a8a82', lineHeight: 1.5 }}>
+            <b style={{ color: '#1a1a17', fontWeight: 600, fontSize: 12 }}>Как использовать</b><br/>
+            Телефоны — кликабельный прототип. Добавляй товары в корзину, открывай карточки, оформляй заказы. Корзина общая на все экраны.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>

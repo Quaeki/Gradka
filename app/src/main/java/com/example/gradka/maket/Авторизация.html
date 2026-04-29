@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Грядка · Авторизация</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; background: #e8e4db; }
+
+:root {
+  --bg: #fafaf7; --surface: #fff; --surface-2: #f2efe8; --surface-3: #e8e4db;
+  --ink: #1a1a17; --ink-2: #4a4a44; --ink-3: #8a8a82;
+  --line: #e5e2d8; --line-2: #d6d2c6;
+  --accent: #5c8c49; --accent-soft: #eef4e8; --accent-deep: #3a6030;
+  --danger: #d4532a;
+}
+[data-theme="dark"] {
+  --bg: #0f0f0d; --surface: #181815; --surface-2: #222220;
+  --ink: #f2f1ec; --ink-2: #bdbcb4; --ink-3: #7a7970;
+  --line: #2a2a27; --line-2: #383834;
+  --accent: #76b05c; --accent-soft: #1a2a14; --accent-deep: #9ed07e;
+  --danger: #e8714a;
+}
+
+.serif { font-family: 'Fraunces', serif; }
+.mono  { font-family: 'JetBrains Mono', monospace; }
+.btn   { transition: transform .08s ease, opacity .12s ease; cursor: pointer; }
+.btn:active { transform: scale(.97); }
+.no-scroll::-webkit-scrollbar { display: none; }
+.no-scroll { scrollbar-width: none; }
+
+.canvas {
+  min-height: 100vh;
+  padding: 48px 40px 120px;
+  display: flex; gap: 52px; flex-wrap: wrap; align-items: flex-start;
+}
+.phone-col { display: flex; flex-direction: column; }
+.col-label { margin-bottom: 16px; }
+.col-label span { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #6a6a62; font-family: 'JetBrains Mono', monospace; margin-bottom: 3px; }
+.col-label b { font-size: 15px; font-weight: 600; color: #1a1a17; letter-spacing: -.01em; }
+
+.phone-frame {
+  width: 390px; height: 820px; border-radius: 44px; padding: 8px;
+  background: #d6d2c6;
+  box-shadow: 0 30px 70px rgba(26,26,23,.18), 0 6px 20px rgba(26,26,23,.08);
+}
+[data-theme="dark"] .phone-frame { background: #2a2a27; }
+.phone-inner {
+  width: 100%; height: 100%; border-radius: 36px; overflow: hidden;
+  background: var(--bg); display: flex; flex-direction: column; position: relative;
+}
+.status-bar {
+  height: 36px; padding: 10px 22px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  position: relative; flex-shrink: 0;
+}
+.status-bar .cam { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 10px; background: #111; }
+.nav-pill { height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-pill div { width: 120px; height: 4px; border-radius: 2px; background: var(--ink); opacity: .3; }
+.screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* animations */
+@keyframes sfade { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes spin   { to{transform:rotate(360deg)} }
+@keyframes blink  { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes growIn { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.sfade { animation: sfade 280ms ease; }
+
+/* OTP cell */
+.otp-cell {
+  width: 64px; height: 72px; border-radius: 16px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px; font-weight: 600; color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+}
+.otp-cell.filled  { border-color: var(--ink); }
+.otp-cell.active  { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(26,26,23,.08); }
+.otp-cell.error   { border-color: var(--danger); background: oklch(0.97 0.02 30); }
+.otp-cell.success { border-color: var(--accent); background: var(--accent-soft); }
+.cursor { width: 2px; height: 34px; background: var(--ink); animation: blink 1s step-end infinite; border-radius: 1px; }
+
+/* Numpad key */
+.nkey {
+  height: 60px; border-radius: 14px;
+  border: 0; background: var(--surface);
+  color: var(--ink); font-family: 'Inter', sans-serif;
+  font-size: 22px; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .1s, transform .07s;
+  box-shadow: 0 1px 2px rgba(26,26,23,.06);
+}
+.nkey:active { transform: scale(.94); background: var(--surface-2); }
+.nkey .sub { font-size: 9px; letter-spacing: .12em; color: var(--ink-3); margin-top: 1px; font-weight: 600; text-transform: uppercase; }
+.nkey.action { background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.nkey.del { background: var(--surface-2); }
+
+/* phone input */
+.phone-input-wrap {
+  display: flex; align-items: center; gap: 0;
+  height: 60px; border-radius: 16px;
+  border: 1.5px solid var(--line);
+  background: var(--surface); overflow: hidden;
+  transition: border-color .15s;
+}
+.phone-input-wrap.focused { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(26,26,23,.06); }
+.phone-input-wrap.error   { border-color: var(--danger); }
+
+/* Tweaks panel */
+.tp { position: fixed; bottom: 28px; right: 28px; width: 240px; background: #fff; border: 1px solid #e5e2d8; border-radius: 18px; padding: 18px; box-shadow: 0 12px 48px rgba(0,0,0,.14); z-index: 999; font-family: 'Inter', sans-serif; font-size: 13px; }
+.tp-seg { display: flex; background: #f2efe8; border-radius: 8px; padding: 3px; gap: 3px; }
+.tp-seg button { border: 0; background: transparent; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; font-family: inherit; color: #4a4a44; }
+.tp-seg button.on { background: #fff; color: #1a1a17; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+/* ─── ICONS ─── */
+const Ic = {
+  back: (c='var(--ink)') => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 19l-7-7 7-7"/></svg>,
+  check: (c='currentColor', s=24) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l4 4 10-10"/></svg>,
+  del: () => <svg width="22" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 0H22a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9L1 9Z"/><path d="m14 6 6 6M20 6l-6 6"/></svg>,
+  leaf: (c='currentColor', s=22) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 4c-8 0-14 5-14 12 0 2 1 4 2 4 7 0 12-6 12-16Z"/><path d="M6 20c3-6 7-10 13-13"/></svg>,
+  phone: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5a2 2 0 0 1 2-2h3l2 5-3 2a14 14 0 0 0 7 7l2-3 5 2v3a2 2 0 0 1-2 2C6 21 3 12 3 5Z"/></svg>,
+  refresh: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+  edit: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>,
+  user: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>,
+  warning: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v5M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>,
+};
+
+/* ─── LOGO ─── */
+function Logo({ size = 24, color }) {
+  const c = color || 'var(--ink)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: c }}>
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke={c} strokeWidth="1.6"/>
+        <path d="M8 15c0-4 2-7 6-7-1 4-2 5-6 7Z" fill={c}/>
+      </svg>
+      <span style={{ fontFamily: 'Fraunces, serif', fontSize: size * 0.95, fontWeight: 500, letterSpacing: '-0.02em' }}>грядка</span>
+    </div>
+  );
+}
+
+/* ─── PHONE FRAME ─── */
+function Phone({ children, dark, statusDark }) {
+  const sc = (dark || statusDark) ? '#f2f1ec' : 'var(--ink)';
+  return (
+    <div className="phone-frame" data-theme={dark ? 'dark' : 'light'}>
+      <div className="phone-inner" data-theme={dark ? 'dark' : 'light'}>
+        <div className="status-bar" style={{ color: sc }}>
+          <span className="mono" style={{ fontSize: 13, letterSpacing: '.02em' }}>9:41</span>
+          <div className="cam" style={{ background: dark ? '#0a0a08' : '#111' }}/>
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            <svg width="14" height="10" viewBox="0 0 14 10"><path d="M1 8l0-1M4 8l0-3M7 8l0-5M10 8l0-7M13 8l0-8" stroke={sc} strokeWidth="1.3" strokeLinecap="round"/></svg>
+            <svg width="22" height="10" viewBox="0 0 22 10"><rect x=".5" y=".5" width="18" height="9" rx="2.5" fill="none" stroke={sc} strokeWidth=".9"/><rect x="2" y="2" width="12" height="6" rx="1" fill={sc}/><rect x="19.5" y="3" width="2" height="4" rx="1" fill={sc}/></svg>
+          </div>
+        </div>
+        <div className="screen sfade" key={Math.random()}>
+          {children}
+        </div>
+        <div className="nav-pill"><div style={{ background: sc, opacity: .3 }}/></div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── NUMPAD ─── */
+const NUMPAD = [
+  ['1','','2','ABC','3','DEF'],
+  ['4','GHI','5','JKL','6','MNO'],
+  ['7','PQRS','8','TUV','9','WXYZ'],
+  [null,null,'0','',null,null],
+];
+function NumPad({ onDigit, onDel, onDone, doneLabel = 'Готово', doneDisabled }) {
+  return (
+    <div style={{ padding: '8px 20px 8px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+      {NUMPAD.map((row, ri) =>
+        [0, 2, 4].map(ci => {
+          const digit = row[ci];
+          const sub   = row[ci + 1];
+          if (ri === 3 && ci === 0) return (
+            <button key="empty" className="nkey action" onClick={onDone} disabled={doneDisabled} style={{ opacity: doneDisabled ? .35 : 1, fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>{doneLabel}</button>
+          );
+          if (ri === 3 && ci === 4) return (
+            <button key="del" className="nkey del btn" onClick={onDel}>
+              {Ic.del()}
+            </button>
+          );
+          return (
+            <button key={`${ri}-${ci}`} className="nkey btn" onClick={() => onDigit(digit)}>
+              {digit}
+              {sub && <span className="sub">{sub}</span>}
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+/* ─── SCREEN 1: SPLASH ─── */
+function SplashScreen() {
+  return (
+    <div style={{ flex: 1, background: 'var(--ink)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+      {/* Animated logo */}
+      <div style={{ animation: 'growIn .6s cubic-bezier(.34,1.56,.64,1) both' }}>
+        <Logo size={36} color="#fafaf7"/>
+      </div>
+      <div style={{ marginTop: 48, display: 'flex', gap: 6 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{ width: 6, height: 6, borderRadius: 3, background: '#fafaf7', opacity: .3, animation: `blink 1.2s ease ${i * .2}s infinite` }}/>
+        ))}
+      </div>
+      {/* Decorative circles */}
+      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 280, height: 280, borderRadius: 140, border: '1px solid rgba(250,250,247,.06)', pointerEvents: 'none' }}/>
+      <div style={{ position: 'absolute', bottom: -40, right: -40, width: 180, height: 180, borderRadius: 90, border: '1px solid rgba(250,250,247,.08)', pointerEvents: 'none' }}/>
+    </div>
+  );
+}
+
+/* ─── SCREEN 2: WELCOME ─── */
+function WelcomeScreen({ onLogin, onRegister }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      {/* Top illustration area */}
+      <div style={{ flex: 1, background: 'var(--ink)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 40px', position: 'relative', overflow: 'hidden' }}>
+        {/* Background rings */}
+        <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: 160, border: '1px solid rgba(250,250,247,.07)' }}/>
+        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, border: '1px solid rgba(250,250,247,.09)' }}/>
+        <div style={{ position: 'absolute', width: 130, height: 130, borderRadius: 65, background: 'rgba(92,140,73,.18)' }}/>
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <Logo size={28} color="#fafaf7"/>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 32, fontWeight: 500, color: '#fafaf7', lineHeight: 1.05, letterSpacing: '-.025em', marginTop: 22 }}>
+            С грядки<br/>прямо на стол
+          </div>
+          <div style={{ fontSize: 14, color: 'rgba(250,250,247,.6)', marginTop: 12, lineHeight: 1.55 }}>
+            32 фермера · доставка за 40 мин<br/>без посредников
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom action sheet */}
+      <div style={{ padding: '28px 24px 24px', background: 'var(--bg)', borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, position: 'relative', zIndex: 2 }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-2)', margin: '0 auto 24px' }}/>
+        <button onClick={onLogin} className="btn" style={{ width: '100%', height: 54, borderRadius: 16, border: 0, background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: 'pointer', marginBottom: 10 }}>
+          Войти
+        </button>
+        <button onClick={onRegister} className="btn" style={{ width: '100%', height: 54, borderRadius: 16, border: '1.5px solid var(--line-2)', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>
+          Создать аккаунт
+        </button>
+        <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-3)', textAlign: 'center', lineHeight: 1.55 }}>
+          Регистрируясь, вы соглашаетесь с{' '}
+          <span style={{ color: 'var(--ink)', textDecoration: 'underline', cursor: 'pointer' }}>условиями использования</span>
+          {' '}и{' '}
+          <span style={{ color: 'var(--ink)', textDecoration: 'underline', cursor: 'pointer' }}>политикой конфиденциальности</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SCREEN 3: PHONE INPUT ─── */
+function PhoneScreen({ onNext, onBack, mode }) {
+  const [phone, setPhone] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const formatted = React.useMemo(() => {
+    const d = phone;
+    let s = '+7 ';
+    if (d.length > 0) s += '(' + d.slice(0,3);
+    if (d.length >= 3) s += ') ';
+    if (d.length > 3) s += d.slice(3,6);
+    if (d.length >= 6) s += '-';
+    if (d.length > 6) s += d.slice(6,8);
+    if (d.length >= 8) s += '-';
+    if (d.length > 8) s += d.slice(8,10);
+    return s;
+  }, [phone]);
+
+  const addDigit = (d) => {
+    if (phone.length >= 10) return;
+    setPhone(p => p + d);
+    setError('');
+  };
+  const delDigit = () => setPhone(p => p.slice(0,-1));
+
+  const submit = () => {
+    if (phone.length < 10) { setError('Введите полный номер телефона'); return; }
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onNext(phone); }, 900);
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      {/* Header */}
+      <div style={{ padding: '12px 20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} className="btn" style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid var(--line)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{Ic.back()}</button>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '22px 24px 16px', flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--accent-deep)', marginBottom: 8 }}>
+          {mode === 'register' ? 'Регистрация' : 'Вход'}
+        </div>
+        <div className="serif" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 8 }}>
+          Ваш номер<br/>телефона
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 28, lineHeight: 1.5 }}>
+          Отправим SMS с кодом<br/>подтверждения
+        </div>
+
+        {/* Phone display */}
+        <div className={`phone-input-wrap ${error ? 'error' : phone.length > 0 ? 'focused' : ''}`}>
+          {/* Flag + code */}
+          <div style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, borderRight: '1px solid var(--line)', height: '100%', flexShrink: 0 }}>
+            <span style={{ fontSize: 22 }}>🇷🇺</span>
+            <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>+7</span>
+          </div>
+          {/* Number */}
+          <div style={{ flex: 1, padding: '0 16px', display: 'flex', alignItems: 'center' }}>
+            <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: phone.length > 0 ? 'var(--ink)' : 'var(--ink-3)', letterSpacing: '.04em' }}>
+              {phone.length > 0 ? formatted.replace('+7 ','') : '(___) ___-__-__'}
+            </span>
+            {phone.length < 10 && phone.length >= 0 && (
+              <span className="cursor" style={{ marginLeft: 2 }}/>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: 'var(--danger)', fontSize: 13 }}>
+            {Ic.warning('var(--danger)')} {error}
+          </div>
+        )}
+
+        {/* Popular carrier hint */}
+        <div style={{ marginTop: 20, fontSize: 12, color: 'var(--ink-3)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          {Ic.phone('var(--ink-3)')}
+          <span>Работает с любым российским оператором</span>
+        </div>
+      </div>
+
+      {/* Numpad */}
+      <NumPad
+        onDigit={addDigit}
+        onDel={delDigit}
+        onDone={submit}
+        doneLabel={loading ? '…' : 'Далее'}
+        doneDisabled={phone.length < 10 || loading}
+      />
+      <div style={{ height: 8 }}/>
+    </div>
+  );
+}
+
+/* ─── SCREEN 4: OTP ─── */
+function OTPScreen({ phone, onNext, onBack, onResend }) {
+  const OTP_LEN = 4;
+  const [code, setCode] = React.useState('');
+  const [error, setError] = React.useState(false);
+  const [success, setSuccess] = React.useState(false);
+  const [countdown, setCountdown] = React.useState(59);
+  const [checking, setChecking] = React.useState(false);
+  const timerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    timerRef.current = setInterval(() => setCountdown(c => c > 0 ? c - 1 : 0), 1000);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  const formatted = `+7 (${phone.slice(0,3)}) ${phone.slice(3,6)}-${phone.slice(6,8)}-${phone.slice(8,10)}`;
+
+  const addDigit = (d) => {
+    if (success || checking) return;
+    if (code.length >= OTP_LEN) return;
+    setError(false);
+    const next = code + d;
+    setCode(next);
+    if (next.length === OTP_LEN) {
+      setChecking(true);
+      setTimeout(() => {
+        setChecking(false);
+        if (next === '1234') { // demo: any code works, '0000' shows error
+          setSuccess(true);
+          setTimeout(() => onNext(), 800);
+        } else if (next === '0000') {
+          setError(true);
+          setCode('');
+        } else {
+          setSuccess(true);
+          setTimeout(() => onNext(), 800);
+        }
+      }, 700);
+    }
+  };
+  const delDigit = () => { if (success || checking) return; setCode(c => c.slice(0,-1)); setError(false); };
+  const resend = () => { if (countdown > 0) return; setCountdown(59); setCode(''); setError(false); onResend && onResend(); };
+
+  const getCellState = (i) => {
+    if (error)   return 'error';
+    if (success) return 'success';
+    if (i < code.length) return 'filled';
+    if (i === code.length) return 'active';
+    return '';
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ padding: '12px 20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} className="btn" style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid var(--line)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{Ic.back()}</button>
+      </div>
+
+      <div style={{ padding: '22px 24px 20px', flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--accent-deep)', marginBottom: 8 }}>Подтверждение</div>
+        <div className="serif" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 8 }}>Код из СМС</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 28, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>Отправили на <b className="mono">{formatted}</b></span>
+          <button onClick={onBack} className="btn" style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', color: 'var(--ink-3)', display: 'flex', alignItems: 'center' }}>{Ic.edit('var(--ink-3)')}</button>
+        </div>
+
+        {/* OTP cells */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 20 }}>
+          {Array.from({ length: OTP_LEN }, (_, i) => (
+            <div key={i} className={`otp-cell ${getCellState(i)}`}>
+              {i < code.length ? (
+                <span>{code[i]}</span>
+              ) : i === code.length && !success && !error ? (
+                <span className="cursor"/>
+              ) : success && i < OTP_LEN ? (
+                <div style={{ animation: 'growIn .3s ease' }}>{Ic.check('var(--accent)', 22)}</div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        {/* Status messages */}
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--danger)', fontSize: 13, justifyContent: 'center', marginBottom: 8 }}>
+            {Ic.warning('var(--danger)')} Неверный код. Попробуйте ещё раз
+          </div>
+        )}
+        {checking && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <div style={{ width: 20, height: 20, border: '2px solid var(--line)', borderTopColor: 'var(--accent)', borderRadius: 10, animation: 'spin .6s linear infinite' }}/>
+          </div>
+        )}
+        {success && (
+          <div style={{ fontSize: 13, color: 'var(--accent-deep)', textAlign: 'center', marginBottom: 8, fontWeight: 500 }}>Код верный! Входим…</div>
+        )}
+
+        {/* Resend */}
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          {countdown > 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+              Повторный код через <span className="mono" style={{ fontWeight: 600, color: 'var(--ink-2)' }}>{String(countdown).padStart(2,'0')}</span> с
+            </div>
+          ) : (
+            <button onClick={resend} className="btn" style={{ border: 0, background: 'transparent', fontSize: 13, fontWeight: 500, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {Ic.refresh('var(--ink)')} Отправить код ещё раз
+            </button>
+          )}
+        </div>
+      </div>
+
+      <NumPad onDigit={addDigit} onDel={delDigit} doneLabel="✓" doneDisabled={code.length < OTP_LEN || checking || success}
+        onDone={() => {}} />
+      <div style={{ height: 8 }}/>
+    </div>
+  );
+}
+
+/* ─── SCREEN 5: NAME (registration) ─── */
+function NameScreen({ onNext, onBack }) {
+  const [name, setName] = React.useState('');
+  const [focused, setFocused] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+
+  const submit = () => {
+    if (!name.trim()) return;
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onNext(name); }, 700);
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ padding: '12px 20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} className="btn" style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid var(--line)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{Ic.back()}</button>
+      </div>
+
+      <div style={{ padding: '22px 24px 20px', flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--accent-deep)', marginBottom: 8 }}>Почти готово</div>
+        <div className="serif" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 8 }}>Как вас зовут?</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 32, lineHeight: 1.5 }}>
+          Курьер будет знать, кому<br/>доставить заказ
+        </div>
+
+        {/* Avatar placeholder */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+          <div style={{ width: 80, height: 80, borderRadius: 40, background: name.trim() ? 'var(--accent-soft)' : 'var(--surface-2)', border: '2px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}>
+            {name.trim() ? (
+              <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--accent-deep)', fontFamily: 'Fraunces, serif' }}>{name.trim()[0].toUpperCase()}</span>
+            ) : (
+              <div style={{ color: 'var(--ink-3)' }}>{Ic.user()}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Name input */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>Имя</div>
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder="Например, Анна"
+            maxLength={32}
+            style={{
+              width: '100%', height: 56, padding: '0 18px',
+              borderRadius: 16, border: `1.5px solid ${focused ? 'var(--ink)' : 'var(--line)'}`,
+              background: 'var(--surface)', color: 'var(--ink)',
+              fontFamily: 'inherit', fontSize: 18, outline: 0,
+              transition: 'border-color .15s',
+            }}
+          />
+        </div>
+
+        {/* Hint */}
+        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+          Можно изменить позже в профиле
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '12px 24px 16px' }}>
+        <button onClick={submit} className="btn" style={{
+          width: '100%', height: 54, borderRadius: 16, border: 0,
+          background: name.trim() ? 'var(--ink)' : 'var(--surface-2)',
+          color: name.trim() ? 'var(--bg)' : 'var(--ink-3)',
+          fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: name.trim() ? 'pointer' : 'default',
+          transition: 'background .2s, color .2s',
+        }}>
+          {loading ? <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: 10, animation: 'spin .6s linear infinite', margin: '0 auto' }}/> : 'Продолжить'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SCREEN 6: SUCCESS ─── */
+function SuccessScreen({ name, isNew, onDone }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', background: 'var(--bg)', textAlign: 'center' }}>
+      {/* Check animation */}
+      <div style={{ width: 100, height: 100, borderRadius: 50, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, animation: 'growIn .5s cubic-bezier(.34,1.56,.64,1) both' }}>
+        <div style={{ width: 62, height: 62, borderRadius: 31, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {Ic.check('#fff', 30)}
+        </div>
+      </div>
+
+      <div className="serif" style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.05, marginBottom: 12 }}>
+        {isNew ? `Привет, ${name || 'друг'}!` : `С возвращением${name ? `,\n${name}` : ''}!`}
+      </div>
+      <div style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.55, maxWidth: 260 }}>
+        {isNew
+          ? 'Аккаунт создан. Готовы делать первый заказ?'
+          : 'Вы успешно вошли в аккаунт.'
+        }
+      </div>
+
+      {/* Mini features (new users only) */}
+      {isNew && (
+        <div style={{ marginTop: 28, width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { emoji: '🌿', t: 'Органические продукты', s: '32 фермера' },
+            { emoji: '⚡', t: 'Доставка за 40 минут',  s: 'Даже сегодня' },
+            { emoji: '🎁', t: 'Первый заказ −10%',     s: 'Промокод GRYADKA' },
+          ].map((f, i) => (
+            <div key={i} style={{ padding: '10px 14px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{f.emoji}</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{f.t}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{f.s}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={onDone} className="btn" style={{
+        marginTop: 28, width: '100%', height: 54, borderRadius: 16, border: 0,
+        background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'inherit',
+        fontSize: 15, fontWeight: 500, cursor: 'pointer',
+      }}>
+        {isNew ? 'Начать покупки →' : 'К покупкам →'}
+      </button>
+    </div>
+  );
+}
+
+/* ─── SCREEN 7: RECOVERY ─── */
+function RecoveryScreen({ onBack, onDone }) {
+  const [step, setStep] = React.useState(0); // 0=phone 1=otp 2=done
+  const [phone, setPhone] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [countdown, setCountdown] = React.useState(59);
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (step !== 1) return;
+    const t = setInterval(() => setCountdown(c => c > 0 ? c-1 : 0), 1000);
+    return () => clearInterval(t);
+  }, [step]);
+
+  const addPhoneDigit = (d) => { if (phone.length >= 10) return; setPhone(p => p+d); };
+  const delPhoneDigit = () => setPhone(p => p.slice(0,-1));
+
+  const addCodeDigit = (d) => {
+    if (code.length >= 4) return;
+    const next = code + d;
+    setCode(next);
+    setError(false);
+    if (next.length === 4) {
+      setTimeout(() => {
+        if (next === '0000') { setError(true); setCode(''); }
+        else setStep(2);
+      }, 600);
+    }
+  };
+  const delCodeDigit = () => { setCode(c => c.slice(0,-1)); setError(false); };
+
+  if (step === 2) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'var(--bg)', textAlign: 'center' }}>
+      <div style={{ width: 80, height: 80, borderRadius: 40, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, animation: 'growIn .4s ease' }}>
+        <div style={{ width: 50, height: 50, borderRadius: 25, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Ic.check('#fff', 24)}</div>
+      </div>
+      <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-.02em', marginBottom: 8 }}>Доступ восстановлен</div>
+      <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>Можете войти в аккаунт с новым кодом</div>
+      <button onClick={onDone} className="btn" style={{ marginTop: 28, width: '100%', height: 54, borderRadius: 16, border: 0, background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Войти</button>
+    </div>
+  );
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ padding: '12px 20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={step === 0 ? onBack : () => { setStep(0); setCode(''); }} className="btn" style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid var(--line)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{Ic.back()}</button>
+      </div>
+      <div style={{ padding: '22px 24px 20px', flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--danger)', marginBottom: 8 }}>Восстановление</div>
+        {step === 0 ? (
+          <>
+            <div className="serif" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 8 }}>Забыли доступ?</div>
+            <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 28, lineHeight: 1.5 }}>Введите номер — отправим новый код для входа</div>
+            <div className={`phone-input-wrap ${phone.length > 0 ? 'focused' : ''}`}>
+              <div style={{ padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, borderRight: '1px solid var(--line)', height: '100%', flexShrink: 0 }}>
+                <span style={{ fontSize: 22 }}>🇷🇺</span>
+                <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>+7</span>
+              </div>
+              <div style={{ flex: 1, padding: '0 16px' }}>
+                <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: phone.length > 0 ? 'var(--ink)' : 'var(--ink-3)', letterSpacing: '.04em' }}>
+                  {phone.length > 0 ? (() => { let s=''; if(phone.length>0)s+='('+phone.slice(0,3); if(phone.length>=3)s+=') '; if(phone.length>3)s+=phone.slice(3,6); if(phone.length>=6)s+='-'; if(phone.length>6)s+=phone.slice(6,8); if(phone.length>=8)s+='-'; if(phone.length>8)s+=phone.slice(8,10); return s; })() : '(___) ___-__-__'}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="serif" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)', lineHeight: 1.1, marginBottom: 8 }}>Код из СМС</div>
+            <div style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 28, lineHeight: 1.5 }}>
+              Отправили код для восстановления
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className={`otp-cell ${error ? 'error' : i < code.length ? 'filled' : i === code.length ? 'active' : ''}`}>
+                  {i < code.length ? code[i] : i === code.length ? <span className="cursor"/> : null}
+                </div>
+              ))}
+            </div>
+            {error && <div style={{ fontSize: 13, color: 'var(--danger)', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>{Ic.warning('var(--danger)')} Неверный код</div>}
+            <div style={{ textAlign: 'center', marginTop: 10 }}>
+              {countdown > 0 ? (
+                <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Повторно через <b className="mono">{String(countdown).padStart(2,'0')}</b> с</span>
+              ) : (
+                <button onClick={() => { setCountdown(59); setCode(''); setError(false); }} className="btn" style={{ border: 0, background: 'transparent', fontSize: 13, fontWeight: 500, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Отправить снова
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <NumPad
+        onDigit={step === 0 ? addPhoneDigit : addCodeDigit}
+        onDel={step === 0 ? delPhoneDigit : delCodeDigit}
+        onDone={() => step === 0 ? setStep(1) : undefined}
+        doneLabel="Далее"
+        doneDisabled={step === 0 ? phone.length < 10 : true}
+      />
+      <div style={{ height: 8 }}/>
+    </div>
+  );
+}
+
+/* ─── INTERACTIVE PHONE (with flow) ─── */
+function FlowPhone({ dark, initScreen, label, sublabel, mode: initMode }) {
+  const [screen, setScreen] = React.useState(initScreen || 'splash');
+  const [phone, setPhone] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [mode, setMode] = React.useState(initMode || 'login');
+  const [hist, setHist] = React.useState([]);
+
+  const go = (s) => { setHist(h => [...h, screen]); setScreen(s); };
+  const back = () => { const h = [...hist]; const p = h.pop() || 'welcome'; setHist(h); setScreen(p); };
+
+  React.useEffect(() => {
+    if (initScreen !== 'splash') return;
+    const t = setTimeout(() => go('welcome'), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const content = (() => {
+    switch (screen) {
+      case 'splash': return <SplashScreen/>;
+      case 'welcome': return <WelcomeScreen
+        onLogin={() => { setMode('login'); go('phone'); }}
+        onRegister={() => { setMode('register'); go('phone'); }}
+      />;
+      case 'phone': return <PhoneScreen
+        mode={mode}
+        onBack={back}
+        onNext={(p) => { setPhone(p); go('otp'); }}
+      />;
+      case 'otp': return <OTPScreen
+        phone={phone}
+        onBack={back}
+        onNext={() => mode === 'register' ? go('name') : go('success')}
+      />;
+      case 'name': return <NameScreen
+        onBack={back}
+        onNext={(n) => { setName(n); go('success'); }}
+      />;
+      case 'success': return <SuccessScreen
+        name={name}
+        isNew={mode === 'register'}
+        onDone={() => go('welcome')}
+      />;
+      case 'recovery': return <RecoveryScreen
+        onBack={back}
+        onDone={() => go('otp')}
+      />;
+      default: return <WelcomeScreen onLogin={() => go('phone')} onRegister={() => { setMode('register'); go('phone'); }}/>;
+    }
+  })();
+
+  return (
+    <div className="phone-col">
+      <div className="col-label">
+        <span>{sublabel}</span>
+        <b>{label}</b>
+      </div>
+      <Phone dark={dark} statusDark={screen === 'splash'}>
+        <div className="sfade" key={screen} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {content}
+        </div>
+      </Phone>
+    </div>
+  );
+}
+
+/* ─── ROOT ─── */
+function App() {
+  const [dark, setDark] = React.useState(false);
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const fn = e => {
+      if (e.data?.type === '__activate_edit_mode')   setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', fn);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', fn);
+  }, []);
+
+  return (
+    <div data-theme={dark ? 'dark' : 'light'} style={{ background: dark ? '#0a0a08' : '#e8e4db', minHeight: '100vh' }}>
+      <div className="canvas">
+
+        <FlowPhone dark={dark} initScreen="splash" label="Сплэш → Онбординг" sublabel="Экран 01"/>
+        <FlowPhone dark={dark} initScreen="welcome" label="Welcome · Вход" sublabel="Экран 02"/>
+        <FlowPhone dark={dark} initScreen="phone" mode="login" label="Ввод номера" sublabel="Экран 03"/>
+        <FlowPhone dark={dark} initScreen="otp" label="OTP · 4 цифры" sublabel="Экран 04"/>
+        <FlowPhone dark={dark} initScreen="name" mode="register" label="Регистрация · Имя" sublabel="Экран 05"/>
+        <FlowPhone dark={dark} initScreen="success" label="Успешный вход" sublabel="Экран 06"/>
+        <FlowPhone dark={dark} initScreen="recovery" label="Восстановление" sublabel="Экран 07"/>
+
+      </div>
+
+      {tweaksOpen && (
+        <div className="tp">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: '#8a8a82' }}>Tweaks</div>
+            <button onClick={() => { setTweaksOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); }} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#8a8a82', lineHeight: 1 }}>×</button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 13, color: '#4a4a44' }}>Тема</span>
+            <div className="tp-seg">
+              <button className={!dark ? 'on' : ''} onClick={() => setDark(false)}>☀ Светлая</button>
+              <button className={dark ? 'on' : ''} onClick={() => setDark(true)}>◑ Тёмная</button>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e5e2d8', fontSize: 11, color: '#6a6a62', lineHeight: 1.6 }}>
+            <b style={{ color: '#1a1a17', fontSize: 12 }}>Как пользоваться</b><br/>
+            Каждый телефон — отдельный экран флоу. Первый запускает полный флоу от сплэша. Остальные — отдельные состояния. OTP: любой код = вход, <span className="mono" style={{ fontSize: 11 }}>0000</span> = ошибка.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

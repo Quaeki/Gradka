@@ -1,0 +1,182 @@
+/* Грядка — фермерский магазин. Design tokens */
+
+:root {
+  /* Light theme */
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --surface-2: #f2efe8;
+  --surface-3: #e8e4db;
+  --ink: #1a1a17;
+  --ink-2: #4a4a44;
+  --ink-3: #8a8a82;
+  --line: #e5e2d8;
+  --line-2: #d6d2c6;
+  --accent: oklch(0.63 0.12 125);
+  --accent-ink: #ffffff;
+  --accent-soft: oklch(0.94 0.04 125);
+  --accent-deep: oklch(0.42 0.08 125);
+  --danger: oklch(0.62 0.16 30);
+  --warn: oklch(0.78 0.14 75);
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Fraunces', 'Inter', serif;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  --shadow-sm: 0 1px 2px rgba(26,26,23,0.04), 0 2px 8px rgba(26,26,23,0.03);
+  --shadow-md: 0 2px 8px rgba(26,26,23,0.06), 0 12px 28px rgba(26,26,23,0.07);
+  --shadow-lg: 0 8px 24px rgba(26,26,23,0.08), 0 30px 80px rgba(26,26,23,0.12);
+}
+
+[data-theme="dark"] {
+  --bg: #0f0f0d;
+  --surface: #181815;
+  --surface-2: #222220;
+  --surface-3: #2a2a27;
+  --ink: #f2f1ec;
+  --ink-2: #bdbcb4;
+  --ink-3: #7a7970;
+  --line: #2a2a27;
+  --line-2: #383834;
+  --accent: oklch(0.72 0.14 125);
+  --accent-ink: #0f0f0d;
+  --accent-soft: oklch(0.26 0.05 125);
+  --accent-deep: oklch(0.85 0.1 125);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #e8e4db;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] body {
+  background: #0a0a08;
+}
+
+.app-root {
+  min-height: 100vh;
+  padding: 48px 32px 120px;
+}
+
+/* scrollbar minimalism for inner phone screens */
+.screen-scroll::-webkit-scrollbar { width: 0; height: 0; }
+.screen-scroll { scrollbar-width: none; }
+
+/* shared utility */
+.mono { font-family: var(--font-mono); font-feature-settings: 'tnum' 1; }
+.serif { font-family: var(--font-display); }
+
+/* product tile placeholder stripes */
+.prod-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-md);
+}
+.prod-tile svg { display: block; width: 100%; height: 100%; }
+
+/* button press feedback */
+.btn { transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease; }
+.btn:active { transform: scale(0.97); }
+
+/* screen fade */
+.screen-fade { animation: fade 240ms ease; }
+@keyframes fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chip-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px;
+}
+.chip-scroll::-webkit-scrollbar { display: none; }
+
+/* tweaks panel */
+.tweaks-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 260px;
+  background: #fff;
+  color: #1a1a17;
+  border: 1px solid #e5e2d8;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  z-index: 999;
+}
+.tweaks-panel h4 {
+  margin: 0 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8a82;
+  font-weight: 600;
+}
+.tweaks-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.tweaks-btns {
+  display: flex;
+  gap: 4px;
+  background: #f2efe8;
+  border-radius: 8px;
+  padding: 2px;
+}
+.tweaks-btns button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #4a4a44;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tweaks-btns button.on {
+  background: #fff;
+  color: #1a1a17;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  font-weight: 600;
+}
+
+/* canvas label */
+.canvas-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #6a6a62;
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.canvas-label b {
+  color: #1a1a17;
+  font-weight: 600;
+  text-transform: none;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  letter-spacing: 0;
+  display: block;
+  margin-bottom: 2px;
+  text-transform: none;
+}

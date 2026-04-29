@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(jar tf *)",
+      "Bash(grep -v \"\\\\$\")",
+      "Bash(grep \"\\\\.class$\")",
+      "Bash(sed 's/\\\\$[^.]*\\\\.class//')",
+      "Bash(sed 's/\\\\.class$//')",
+      "Bash(grep -v \"\\\\$\\\\|/\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.SearchManager\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.SuggestResult\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.Suggest\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.SuggestHandler\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.DirectoryObject\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.FutureKt\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.SuggestObjectHandler\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.directory.MarkedUpText\")",
+      "Bash(javap -cp /tmp/sdk-full/classes.jar \"ru.dgis.sdk.geometry.GeoPointWithElevation\")",
+      "Bash(/usr/libexec/java_home -v 17)",
+      "Bash(JAVA_HOME=$\\(/usr/libexec/java_home -v 17\\) ./gradlew assembleDebug)",
+      "Read(//private/tmp/**)",
+      "Bash(unzip -q /Users/kaiser/.gradle/caches/modules-2/files-2.1/com.yandex.android/maps.mobile/4.6.1-full/5fcba5f59b57b8f60d74492323c794b2c1c77d8a/maps.mobile-4.6.1-full.aar -d yandex-maps)",
+      "Bash(javap -cp yandex-maps/classes.jar \"com.yandex.mapkit.search.SuggestSession\")",
+      "Bash(javap -cp yandex-maps/classes.jar \"com.yandex.mapkit.search.SuggestItem\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar 'com.yandex.mapkit.search.SuggestSession$SuggestListener')",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.SpannableString\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.search.SuggestResponse\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.search.SearchManager\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.MapView\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar 'com.yandex.mapkit.search.Session$SearchListener')",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.search.Response\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.GeoObjectCollection\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar 'com.yandex.mapkit.GeoObjectCollection$Item')",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.GeoObject\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.mapview.MapView\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.Map\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.MapObjectCollection\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.PlacemarkMapObject\")",
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.CameraPosition\")"
+    ]
+  }
+}

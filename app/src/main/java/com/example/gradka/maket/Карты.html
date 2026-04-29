@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Грядка · Карты — Адрес и Трекинг</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=4139e44d-4325-4707-a507-02a0ab44fea6&lang=ru_RU" type="text/javascript"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; background: #e8e4db; }
+
+/* ── TOKENS ── */
+:root {
+  --bg: #fafaf7; --surface: #fff; --surface-2: #f2efe8; --surface-3: #e8e4db;
+  --ink: #1a1a17; --ink-2: #4a4a44; --ink-3: #8a8a82;
+  --line: #e5e2d8; --line-2: #d6d2c6;
+  --accent: #5c8c49; --accent-soft: #eef4e8; --accent-deep: #3a6030;
+  --danger: #d4532a;
+}
+[data-theme="dark"] {
+  --bg: #0f0f0d; --surface: #181815; --surface-2: #222220; --surface-3: #2a2a27;
+  --ink: #f2f1ec; --ink-2: #bdbcb4; --ink-3: #7a7970;
+  --line: #2a2a27; --line-2: #383834;
+  --accent: #76b05c; --accent-soft: #1a2a14; --accent-deep: #9ed07e;
+}
+
+.serif { font-family: 'Fraunces', serif; }
+.mono  { font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1; }
+.btn   { transition: transform .08s ease, background .12s ease; cursor: pointer; }
+.btn:active { transform: scale(.97); }
+.no-scroll::-webkit-scrollbar { display: none; }
+.no-scroll { scrollbar-width: none; }
+
+/* ── CANVAS ── */
+.canvas {
+  min-height: 100vh;
+  padding: 48px 40px 120px;
+  display: flex; gap: 52px; flex-wrap: wrap; align-items: flex-start;
+}
+.phone-col { display: flex; flex-direction: column; gap: 0; }
+.col-label { margin-bottom: 16px; }
+.col-label span { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #6a6a62; font-family: 'JetBrains Mono', monospace; margin-bottom: 3px; }
+.col-label b { font-size: 15px; font-weight: 600; color: #1a1a17; letter-spacing: -.01em; }
+
+/* ── PHONE FRAME ── */
+.phone-frame {
+  width: 390px; height: 820px;
+  border-radius: 44px; padding: 8px;
+  background: #d6d2c6;
+  box-shadow: 0 30px 70px rgba(26,26,23,.18), 0 6px 20px rgba(26,26,23,.08);
+  flex-shrink: 0;
+}
+[data-theme="dark"] .phone-frame { background: #2a2a27; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+.phone-inner {
+  width: 100%; height: 100%;
+  border-radius: 36px; overflow: hidden;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.status-bar {
+  height: 36px; padding: 10px 22px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; position: relative; z-index: 20;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.status-bar .camera {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  width: 20px; height: 20px; border-radius: 10px; background: #111;
+}
+.nav-pill {
+  height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.nav-pill div { width: 120px; height: 4px; border-radius: 2px; background: var(--ink); opacity: .32; }
+.screen-body { flex: 1; overflow: auto; position: relative; display: flex; flex-direction: column; }
+.screen-body::-webkit-scrollbar { display: none; }
+.screen-body { scrollbar-width: none; }
+
+/* ── MAP CONTAINERS ── */
+.ymap { width: 100%; background: #ddd; }
+
+/* ── SUGGEST DROPDOWN ── */
+.suggest-drop {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; z-index: 50;
+  box-shadow: 0 8px 24px rgba(26,26,23,.1);
+}
+.suggest-item {
+  padding: 13px 16px; font-size: 14px; color: var(--ink); cursor: pointer;
+  border-bottom: 1px solid var(--line); transition: background .1s;
+}
+.suggest-item:last-child { border-bottom: 0; }
+.suggest-item:hover { background: var(--surface-2); }
+.suggest-item .sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+/* ── TWEAKS PANEL ── */
+.tp { position: fixed; bottom: 28px; right: 28px; width: 240px; background: #fff; border: 1px solid #e5e2d8; border-radius: 18px; padding: 18px; box-shadow: 0 12px 48px rgba(0,0,0,.14); z-index: 999; font-family: 'Inter', sans-serif; font-size: 13px; color: #1a1a17; }
+.tp-title { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #8a8a82; font-weight: 700; margin-bottom: 14px; }
+.tp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.tp-seg { display: flex; background: #f2efe8; border-radius: 8px; padding: 3px; gap: 3px; }
+.tp-seg button { border: 0; background: transparent; padding: 5px 10px; border-radius: 5px; font-size: 12px; color: #4a4a44; cursor: pointer; font-family: inherit; }
+.tp-seg button.on { background: #fff; color: #1a1a17; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+/* ── SPINNER ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+
+/* ── PULSE animation for courier ── */
+@keyframes pulse { 0%,100%{opacity:.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.15)} }
+
+/* ── step fade ── */
+@keyframes sfade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.sfade { animation: sfade 260ms ease; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+/* ───────────────── ICONS ───────────────── */
+const Ic = {
+  back: (c='var(--ink)') => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 19l-7-7 7-7"/></svg>,
+  search: (c='var(--ink-3)') => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>,
+  pin: (c='currentColor', s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s7-7.5 7-13a7 7 0 1 0-14 0c0 5.5 7 13 7 13Z"/><circle cx="12" cy="9" r="2.5"/></svg>,
+  gps: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9"/></svg>,
+  check: (c='currentColor', s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l4 4 10-10"/></svg>,
+  close: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>,
+  plus: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>,
+  phone: (c='currentColor') => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5a2 2 0 0 1 2-2h3l2 5-3 2a14 14 0 0 0 7 7l2-3 5 2v3a2 2 0 0 1-2 2C6 21 3 12 3 5Z"/></svg>,
+  nav: (c='currentColor') => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l19-9-9 19-2-8-8-2Z"/></svg>,
+  chevron: (c='var(--ink-3)', s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>,
+  home: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>,
+  work: (c='currentColor') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+  clock: (c='currentColor') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+  delivery: (c='currentColor') => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>,
+};
+
+/* ───────────────── PHONE FRAME ───────────────── */
+function Phone({ children, dark }) {
+  return (
+    <div className="phone-frame" data-theme={dark ? 'dark' : 'light'}>
+      <div className="phone-inner" data-theme={dark ? 'dark' : 'light'}>
+        <div className="status-bar">
+          <span className="mono" style={{ fontSize: 13, letterSpacing: '.02em' }}>9:41</span>
+          <div className="camera"/>
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            <svg width="14" height="10" viewBox="0 0 14 10"><path d="M1 8l0-1M4 8l0-3M7 8l0-5M10 8l0-7M13 8l0-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+            <svg width="22" height="10" viewBox="0 0 22 10"><rect x=".5" y=".5" width="18" height="9" rx="2.5" fill="none" stroke="currentColor" strokeWidth=".9"/><rect x="2" y="2" width="12" height="6" rx="1" fill="currentColor"/><rect x="19.5" y="3" width="2" height="4" rx="1" fill="currentColor"/></svg>
+          </div>
+        </div>
+        <div className="screen-body sfade">
+          {children}
+        </div>
+        <div className="nav-pill"><div/></div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────── ADDRESS SCREEN ───────────────── */
+function AddressScreen({ dark }) {
+  const mapRef = React.useRef(null);
+  const mapObj = React.useRef(null);
+  const placemark = React.useRef(null);
+
+  const [query, setQuery] = React.useState('');
+  const [suggests, setSuggests] = React.useState([]);
+  const [address, setAddress] = React.useState('ул. Лесная, 14');
+  const [city, setCity] = React.useState('Москва');
+  const [loading, setLoading] = React.useState(false);
+  const [gpsLoading, setGpsLoading] = React.useState(false);
+  const [confirmed, setConfirmed] = React.useState(false);
+  const [searchFocused, setSearchFocused] = React.useState(false);
+  const [savedList, setSavedList] = React.useState([
+    { id: 'home', label: 'Дом',    icon: Ic.home, text: 'ул. Лесная, 14',       sub: 'кв. 47 · Москва',      primary: true,  coords: [55.771, 37.582] },
+    { id: 'work', label: 'Работа', icon: Ic.work, text: 'Пресненская наб., 12', sub: 'БЦ Империя · Москва',  primary: false, coords: [55.749, 37.540] },
+  ]);
+
+  // Init map
+  React.useEffect(() => {
+    if (!window.ymaps || mapObj.current) return;
+    ymaps.ready(() => {
+      const map = new ymaps.Map(mapRef.current, {
+        center: [55.771, 37.582],
+        zoom: 15,
+        controls: [],
+      }, { suppressMapOpenBlock: true });
+
+      // Custom pin placemark
+      const pm = new ymaps.Placemark([55.771, 37.582], {}, {
+        iconLayout: 'default#image',
+        iconImageHref: `data:image/svg+xml;utf8,${encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
+            <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1a1a17" flood-opacity="0.25"/></filter>
+            <g filter="url(#sh)">
+              <path d="M20 2a16 16 0 0 0-16 16c0 12 16 32 16 32s16-20 16-32A16 16 0 0 0 20 2Z" fill="#1a1a17"/>
+              <circle cx="20" cy="18" r="6" fill="#fff"/>
+            </g>
+          </svg>
+        `)}`,
+        iconImageSize: [40, 52],
+        iconImageOffset: [-20, -52],
+        draggable: true,
+      });
+
+      pm.events.add('dragend', () => {
+        const coords = pm.geometry.getCoordinates();
+        geocodeCoords(coords);
+      });
+
+      map.events.add('click', (e) => {
+        const coords = e.get('coords');
+        pm.geometry.setCoordinates(coords);
+        geocodeCoords(coords);
+      });
+
+      map.geoObjects.add(pm);
+      mapObj.current = map;
+      placemark.current = pm;
+    });
+  }, []);
+
+  const geocodeCoords = (coords) => {
+    setLoading(true);
+    ymaps.geocode(coords, { results: 1 }).then(res => {
+      const obj = res.geoObjects.get(0);
+      if (obj) {
+        const name = obj.getAddressLine();
+        const parts = name.split(', ');
+        if (parts.length >= 2) {
+          setCity(parts[0]);
+          setAddress(parts.slice(1).join(', '));
+        } else {
+          setAddress(name);
+        }
+        setQuery('');
+        setSuggests([]);
+      }
+      setLoading(false);
+    });
+  };
+
+  // Suggest
+  React.useEffect(() => {
+    if (!query || query.length < 2) { setSuggests([]); return; }
+    const t = setTimeout(() => {
+      ymaps.ready(() => {
+        ymaps.suggest(query, { results: 5, boundedBy: [[55.1, 36.8],[56.2, 38.0]] }).then(items => {
+          setSuggests(items.slice(0, 5));
+        });
+      });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const selectSuggest = (item) => {
+    setQuery(item.displayName || item.value);
+    setSuggests([]);
+    setLoading(true);
+    ymaps.geocode(item.value, { results: 1 }).then(res => {
+      const obj = res.geoObjects.get(0);
+      if (obj) {
+        const coords = obj.geometry.getCoordinates();
+        placemark.current.geometry.setCoordinates(coords);
+        mapObj.current.setCenter(coords, 16, { duration: 400 });
+        const name = obj.getAddressLine();
+        const parts = name.split(', ');
+        if (parts.length >= 2) { setCity(parts[0]); setAddress(parts.slice(1).join(', ')); }
+        else setAddress(name);
+        setQuery(item.displayName || item.value);
+        setSuggests([]);
+      }
+      setLoading(false);
+    });
+  };
+
+  const goGPS = () => {
+    setGpsLoading(true);
+    ymaps.ready(() => {
+      ymaps.geolocation.get({ provider: 'browser', mapStateAutoApply: true }).then(res => {
+        const coords = res.geoObjects.get(0).geometry.getCoordinates();
+        placemark.current.geometry.setCoordinates(coords);
+        mapObj.current.setCenter(coords, 16, { duration: 500 });
+        geocodeCoords(coords);
+        setGpsLoading(false);
+      }).catch(() => {
+        // fallback: simulate Moscow center
+        const c = [55.751, 37.619];
+        placemark.current.geometry.setCoordinates(c);
+        mapObj.current.setCenter(c, 15, { duration: 500 });
+        geocodeCoords(c);
+        setGpsLoading(false);
+      });
+    });
+  };
+
+  const selectSaved = (s) => {
+    ymaps.ready(() => {
+      placemark.current.geometry.setCoordinates(s.coords);
+      mapObj.current.setCenter(s.coords, 16, { duration: 400 });
+      setAddress(s.text);
+      setCity(s.sub.split(' · ')[1] || 'Москва');
+    });
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minHeight: 0 }}>
+      {/* Header */}
+      <div style={{ padding: '12px 16px 10px', background: 'var(--surface)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <button className="btn" style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid var(--line)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Ic.back()}</button>
+          <div className="serif" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--ink)' }}>Адрес доставки</div>
+        </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ height: 44, borderRadius: 12, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', border: `1.5px solid ${searchFocused ? 'var(--ink)' : 'transparent'}`, transition: 'border-color .15s' }}>
+            {Ic.search()}
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+              placeholder="Поиск адреса…"
+              style={{ flex: 1, border: 0, outline: 0, background: 'transparent', fontSize: 14, fontFamily: 'inherit', color: 'var(--ink)' }}
+            />
+            {loading && <div className="spinner" style={{ width: 16, height: 16, borderWidth: 1.5 }}/>}
+            {query && !loading && <button onClick={() => { setQuery(''); setSuggests([]); }} style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 0 }}>{Ic.close('var(--ink-3)')}</button>}
+          </div>
+
+          {/* Suggests */}
+          {suggests.length > 0 && (
+            <div className="suggest-drop">
+              {suggests.map((s, i) => {
+                const parts = (s.displayName || s.value).split(', ');
+                return (
+                  <div key={i} className="suggest-item" onMouseDown={() => selectSuggest(s)}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ color: 'var(--ink-3)', marginTop: 2 }}>{Ic.pin('var(--ink-3)', 16)}</div>
+                      <div>
+                        <div>{parts[0]}{parts[1] ? `, ${parts[1]}` : ''}</div>
+                        {parts.length > 2 && <div className="sub">{parts.slice(2).join(', ')}</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Map */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div ref={mapRef} className="ymap" style={{ height: 240 }}/>
+        {/* GPS button */}
+        <button onClick={goGPS} className="btn" style={{
+          position: 'absolute', bottom: 14, right: 14,
+          width: 44, height: 44, borderRadius: 22,
+          background: 'var(--surface)', border: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 12px rgba(26,26,23,.12)',
+        }}>
+          {gpsLoading ? <div className="spinner"/> : Ic.gps('var(--accent)')}
+        </button>
+        {/* Map center hint */}
+        <div style={{ position: 'absolute', bottom: 14, left: 14, background: 'rgba(26,26,23,.75)', color: '#fff', borderRadius: 8, padding: '5px 10px', fontSize: 11, backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', gap: 5 }}>
+          {Ic.pin('#fff', 13)} Перетащите пин
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="no-scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+
+        {/* Detected address */}
+        <div style={{ padding: 14, borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)', marginBottom: 14 }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-3)', fontSize: 14 }}><div className="spinner"/><span>Определяем адрес…</span></div>
+          ) : (
+            <>
+              <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--ink)' }}>{address}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 3 }}>{city}</div>
+            </>
+          )}
+        </div>
+
+        {/* Apartment details */}
+        <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 8 }}>Детали</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+          {[['Квартира', '47'], ['Подъезд', '3'], ['Этаж', '6'], ['Домофон', '47В']].map(([label, val]) => (
+            <div key={label} style={{ padding: '11px 12px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid transparent' }}>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Saved addresses */}
+        <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 8 }}>Сохранённые адреса</div>
+        {savedList.map(s => (
+          <div key={s.id} style={{
+            width: '100%', marginBottom: 8, padding: '12px 14px',
+            borderRadius: 12, border: `1px solid ${s.primary ? 'var(--ink)' : 'var(--line)'}`,
+            background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <button onClick={() => selectSaved(s)} className="btn" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left', padding: 0, fontFamily: 'inherit' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: s.primary ? 'var(--accent-soft)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.primary ? 'var(--accent)' : 'var(--ink-3)', flexShrink: 0 }}>{s.icon(s.primary ? 'var(--accent)' : 'var(--ink-3)')}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {s.label}
+                  {s.primary && <span style={{ fontSize: 9, padding: '2px 5px', borderRadius: 4, background: 'var(--ink)', color: 'var(--bg)', fontWeight: 700, letterSpacing: '.04em' }}>ОСНОВНОЙ</span>}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.text}</div>
+              </div>
+            </button>
+            {/* Delete button */}
+            <button
+              onClick={() => setSavedList(list => list.filter(x => x.id !== s.id))}
+              className="btn"
+              style={{ width: 30, height: 30, borderRadius: 15, border: '1px solid var(--line)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+            >
+              {Ic.close('var(--ink-3)')}
+            </button>
+          </div>
+        ))}
+
+        {/* Add address button */}
+        <button className="btn" style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1px dashed var(--line-2)', background: 'transparent', color: 'var(--ink-2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 80 }}>
+          {Ic.plus('var(--ink-2)')} Добавить адрес
+        </button>
+      </div>
+
+      {/* Sticky CTA */}
+      <div style={{ position: 'sticky', bottom: 0, padding: '12px 16px 14px', background: 'var(--bg)', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+        {confirmed ? (
+          <div style={{ height: 54, borderRadius: 16, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--accent-deep)', fontSize: 15, fontWeight: 500 }}>
+            {Ic.check('var(--accent-deep)', 20)} Адрес сохранён
+          </div>
+        ) : (
+          <button onClick={() => setConfirmed(true)} className="btn" style={{ width: '100%', height: 54, borderRadius: 16, border: 0, background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {Ic.check('currentColor', 18)} Подтвердить адрес
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────── TRACKING SCREEN ───────────────── */
+function TrackingScreen({ dark }) {
+  const mapRef = React.useRef(null);
+  const mapObj = React.useRef(null);
+  const courierMark = React.useRef(null);
+  const animRef = React.useRef(null);
+  const routeCoords = React.useRef([]);
+  const stepIdx = React.useRef(0);
+
+  const [eta, setEta] = React.useState(31);
+  const [courierPos, setCourierPos] = React.useState(0); // 0..1
+  const [orderStep, setOrderStep] = React.useState(2); // 0=принят 1=собран 2=в пути 3=у дверей
+
+  const WAREHOUSE = [55.758, 37.642]; // Warehouse in Moscow
+  const DELIVERY  = [55.771, 37.582]; // Delivery address
+
+  // Courier SVG icon
+  const courierIcon = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+      <circle cx="22" cy="22" r="20" fill="#5c8c49" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="22" cy="22" r="28" fill="#5c8c49" opacity="0.2"/>
+      <path d="M14 22l5 5 11-10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  `);
+
+  const destIcon = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
+      <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1a1a17" flood-opacity="0.25"/></filter>
+      <g filter="url(#sh)">
+        <path d="M20 2a16 16 0 0 0-16 16c0 12 16 32 16 32s16-20 16-32A16 16 0 0 0 20 2Z" fill="#1a1a17"/>
+        <circle cx="20" cy="18" r="6" fill="#fff"/>
+      </g>
+    </svg>
+  `);
+
+  const warehouseIcon = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="17" fill="#fff" stroke="#1a1a17" stroke-width="2"/>
+      <rect x="10" y="14" width="16" height="11" rx="1.5" fill="none" stroke="#1a1a17" stroke-width="1.6"/>
+      <path d="M10 17h16M15 25v-8M21 25v-8" stroke="#1a1a17" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M8 14l10-6 10 6" fill="none" stroke="#1a1a17" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `);
+
+  React.useEffect(() => {
+    if (!window.ymaps || mapObj.current) return;
+    ymaps.ready(() => {
+      const map = new ymaps.Map(mapRef.current, {
+        center: [55.765, 37.612],
+        zoom: 14,
+        controls: [],
+      }, { suppressMapOpenBlock: true });
+
+      // Warehouse marker
+      map.geoObjects.add(new ymaps.Placemark(WAREHOUSE, {}, {
+        iconLayout: 'default#image',
+        iconImageHref: `data:image/svg+xml;utf8,${warehouseIcon}`,
+        iconImageSize: [36, 36],
+        iconImageOffset: [-18, -18],
+      }));
+
+      // Destination marker
+      map.geoObjects.add(new ymaps.Placemark(DELIVERY, { balloonContent: 'Адрес доставки' }, {
+        iconLayout: 'default#image',
+        iconImageHref: `data:image/svg+xml;utf8,${destIcon}`,
+        iconImageSize: [40, 52],
+        iconImageOffset: [-20, -52],
+      }));
+
+      // Courier marker (starts at warehouse)
+      const cm = new ymaps.Placemark(WAREHOUSE, {}, {
+        iconLayout: 'default#image',
+        iconImageHref: `data:image/svg+xml;utf8,${courierIcon}`,
+        iconImageSize: [44, 44],
+        iconImageOffset: [-22, -22],
+        zIndex: 100,
+      });
+      map.geoObjects.add(cm);
+      courierMark.current = cm;
+
+      // Build route
+      ymaps.route([WAREHOUSE, DELIVERY], {
+        routingMode: 'pedestrian',
+        mapStateAutoApply: false,
+      }).then(route => {
+        const path = route.getPaths().get(0);
+        const coords = path.geometry.getCoordinates();
+        routeCoords.current = coords;
+
+        // Draw route polyline
+        const poly = new ymaps.Polyline(coords, {}, {
+          strokeColor: '#5c8c49',
+          strokeWidth: 4,
+          strokeStyle: 'dash',
+          strokeOpacity: 0.85,
+        });
+        map.geoObjects.add(poly);
+
+        // Fit map
+        map.setBounds(route.getBounds(), { checkZoomRange: true, zoomMargin: 60, duration: 600 });
+
+        // Animate courier
+        animateCourier();
+      }).catch(() => {
+        // Fallback: interpolate straight line
+        routeCoords.current = interpolateLine(WAREHOUSE, DELIVERY, 80);
+        animateCourier();
+      });
+
+      mapObj.current = map;
+    });
+
+    return () => { if (animRef.current) clearInterval(animRef.current); };
+  }, []);
+
+  const interpolateLine = (from, to, steps) =>
+    Array.from({ length: steps }, (_, i) => {
+      const t = i / (steps - 1);
+      return [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+    });
+
+  const animateCourier = () => {
+    // Start courier at ~30% of route (already partially there)
+    stepIdx.current = Math.floor((routeCoords.current.length || 80) * 0.3);
+    animRef.current = setInterval(() => {
+      const coords = routeCoords.current;
+      if (!coords.length) return;
+      stepIdx.current = Math.min(stepIdx.current + 1, coords.length - 1);
+      const pos = stepIdx.current / (coords.length - 1);
+      setCourierPos(pos);
+      // ETA countdown
+      setEta(Math.max(0, Math.round(31 * (1 - pos))));
+      // Update courier position on map
+      if (courierMark.current) {
+        courierMark.current.geometry.setCoordinates(coords[stepIdx.current]);
+      }
+      // Trigger arrival step
+      if (pos > 0.95) {
+        setOrderStep(3);
+        clearInterval(animRef.current);
+      } else if (pos > 0.01) {
+        setOrderStep(2);
+      }
+    }, 400);
+  };
+
+  const steps = [
+    { label: 'Принят',    time: '19:02', done: orderStep >= 0 },
+    { label: 'Собирается',time: '19:18', done: orderStep >= 1 },
+    { label: 'В пути',    time: '19:24', done: orderStep >= 2, active: orderStep === 2 },
+    { label: 'У дверей',  time: eta === 0 ? '19:55' : `~${19 + Math.floor((55 - eta) / 60)}:${String((55 - (eta % 60))).padStart(2,'0')}`, done: orderStep >= 3 },
+  ];
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minHeight: 0 }}>
+      {/* Map (no status bar overlay) */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div ref={mapRef} className="ymap" style={{ height: 330 }}/>
+        {/* Back button */}
+        <button className="btn" style={{ position: 'absolute', top: 14, left: 14, width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,.9)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,.12)', backdropFilter: 'blur(8px)' }}>{Ic.back()}</button>
+        {/* ETA chip on map */}
+        <div style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(8px)', borderRadius: 12, padding: '8px 12px', boxShadow: '0 2px 10px rgba(0,0,0,.1)' }}>
+          <div style={{ fontSize: 10, color: '#6a6a62', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>ETA</div>
+          <div className="mono" style={{ fontSize: 18, fontWeight: 600, color: '#1a1a17', lineHeight: 1 }}>{eta} мин</div>
+        </div>
+        {/* Progress bar */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(0,0,0,.08)' }}>
+          <div style={{ height: '100%', width: `${courierPos * 100}%`, background: 'var(--accent)', transition: 'width .4s linear' }}/>
+        </div>
+      </div>
+
+      {/* Bottom sheet */}
+      <div className="no-scroll" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -20, position: 'relative', zIndex: 2, padding: '16px 20px 14px' }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--line-2)', margin: '0 auto 18px' }}/>
+
+        {/* Status */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--accent-deep)', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+              {orderStep === 3 ? '🎉 У дверей!' : 'В пути'}
+            </div>
+            <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--ink)', lineHeight: 1.1 }}>
+              {orderStep === 3 ? 'Курьер у двери!' : `Прибудет через ${eta} мин`}
+            </div>
+          </div>
+          <div className="mono" style={{ fontSize: 22, fontWeight: 600, color: 'var(--accent-deep)', flexShrink: 0, marginLeft: 10 }}>
+            {eta === 0 ? 'Здесь!' : `~${String(19).padStart(2,'0')}:${String(55).padStart(2,'0')}`}
+          </div>
+        </div>
+
+        {/* Courier card */}
+        <div style={{ padding: '12px 14px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>АП</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Александр П.</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+              {Ic.delivery('var(--ink-3)')} Электровелосипед
+            </div>
+          </div>
+          {/* Call button */}
+          <button className="btn" onClick={() => alert('Звоним курьеру…')} style={{
+            width: 44, height: 44, borderRadius: 22, border: 0,
+            background: 'var(--accent)', color: '#fff', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(92,140,73,.35)',
+          }}>
+            {Ic.phone('#fff')}
+          </button>
+        </div>
+
+        {/* Steps timeline */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {steps.map((s, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 12,
+                  border: `2px solid ${s.done ? 'var(--accent)' : 'var(--line-2)'}`,
+                  background: s.done ? 'var(--accent)' : (s.active ? 'var(--accent-soft)' : 'var(--surface)'),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all .3s',
+                }}>
+                  {s.done && Ic.check('#fff', 13)}
+                  {!s.done && s.active && <div style={{ width: 8, height: 8, borderRadius: 4, background: 'var(--accent)', animation: 'pulse 1.2s ease-in-out infinite' }}/>}
+                </div>
+                {i < steps.length - 1 && (
+                  <div style={{ width: 2, height: 20, marginTop: 3, background: s.done ? 'var(--accent)' : 'var(--line-2)', transition: 'background .3s' }}/>
+                )}
+              </div>
+              <div style={{ paddingBottom: 4, flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: s.active ? 600 : 500, color: s.done || s.active ? 'var(--ink)' : 'var(--ink-3)', transition: 'color .3s' }}>{s.label}</div>
+                <div className="mono" style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1 }}>{s.time}</div>
+              </div>
+              {s.active && (
+                <div style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--accent-soft)', color: 'var(--accent-deep)', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>СЕЙЧАС</div>
+              )}
+              {i === steps.length - 1 && orderStep === 3 && (
+                <div style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>🎉 ТУТ</div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Route info */}
+        <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: 12, background: 'var(--surface-2)', display: 'flex', gap: 16 }}>
+          {[
+            { label: 'Маршрут', val: '2.4 км' },
+            { label: 'Скорость', val: '18 км/ч' },
+            { label: 'Заказ №', val: '24809' },
+          ].map(({ label, val }) => (
+            <div key={label} style={{ flex: 1, textAlign: 'center' }}>
+              <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{val}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Navigate button */}
+        <button className="btn" onClick={() => alert('Открываем навигацию…')} style={{
+          marginTop: 14, width: '100%', height: 48, borderRadius: 14, border: '1px solid var(--line)',
+          background: 'var(--surface)', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+          color: 'var(--ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          {Ic.nav('var(--ink)')} Построить маршрут в навигаторе
+        </button>
+
+        <div style={{ height: 14 }}/>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────── MANUAL ADDRESS FORM ───────────────── */
+function ManualAddressScreen({ dark }) {
+  const [step, setStep] = React.useState(0); // 0=search street, 1=fill details
+  const [street, setStreet] = React.useState('');
+  const [suggests, setSuggests] = React.useState([]);
+  const [focused, setFocused] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [label, setLabel] = React.useState('home');
+  const [errors, setErrors] = React.useState({});
+  const [form, setForm] = React.useState({
+    street: '',
+    apt: '',
+    entrance: '',
+    floor: '',
+    intercom: '',
+    comment: '',
+  });
+
+  // Suggest
+  React.useEffect(() => {
+    if (!street || street.length < 2) { setSuggests([]); return; }
+    const t = setTimeout(() => {
+      if (!window.ymaps) return;
+      ymaps.ready(() => {
+        ymaps.suggest(street, { results: 6, boundedBy: [[55.1,36.8],[56.2,38.0]] }).then(items => {
+          setSuggests(items.slice(0, 6));
+        });
+      });
+    }, 220);
+    return () => clearTimeout(t);
+  }, [street]);
+
+  const pickSuggest = (item) => {
+    const name = item.displayName || item.value;
+    setStreet(name);
+    setForm(f => ({ ...f, street: name }));
+    setSuggests([]);
+    setStep(1);
+  };
+
+  const setField = (key, val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    if (errors[key]) setErrors(e => ({ ...e, [key]: null }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.street) e.street = 'Укажите улицу';
+    if (!form.apt)    e.apt    = 'Укажите квартиру';
+    return e;
+  };
+
+  const save = () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaved(true);
+  };
+
+  const LABELS = [
+    { id: 'home',  icon: '🏠', label: 'Дом'     },
+    { id: 'work',  icon: '💼', label: 'Работа'  },
+    { id: 'other', icon: '📍', label: 'Другое'  },
+  ];
+
+  const Field = ({ fieldKey, label, placeholder, hint, keyboard, half }) => {
+    const err = errors[fieldKey];
+    return (
+      <div style={{ flex: half ? 1 : 'none', minWidth: half ? 0 : 'auto' }}>
+        <div style={{ fontSize: 11, color: err ? 'var(--danger)' : 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>{label}{err ? ` — ${err}` : ''}</div>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={form[fieldKey]}
+            onChange={e => setField(fieldKey, e.target.value)}
+            placeholder={placeholder}
+            inputMode={keyboard || 'text'}
+            style={{
+              width: '100%', height: 48, padding: '0 14px',
+              borderRadius: 12, border: `1.5px solid ${err ? 'var(--danger)' : focused === fieldKey ? 'var(--ink)' : 'var(--line)'}`,
+              background: 'var(--surface)', color: 'var(--ink)',
+              fontSize: 15, fontFamily: 'inherit', outline: 0,
+              transition: 'border-color .15s',
+            }}
+            onFocus={() => setFocused(fieldKey)}
+            onBlur={() => setFocused(null)}
+          />
+        </div>
+        {hint && !err && <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 5 }}>{hint}</div>}
+      </div>
+    );
+  };
+
+  if (saved) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', background: 'var(--bg)' }}>
+      <div style={{ width: 90, height: 90, borderRadius: 45, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {Ic.check('#fff', 26)}
+        </div>
+      </div>
+      <div className="serif" style={{ fontSize: 28, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--ink)' }}>Адрес сохранён!</div>
+      <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 10, lineHeight: 1.55 }}>{form.street}{form.apt ? `, кв. ${form.apt}` : ''}</div>
+      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 8, background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-2)' }}>
+        {LABELS.find(l => l.id === label)?.icon} {LABELS.find(l => l.id === label)?.label}
+      </div>
+      <button onClick={() => { setSaved(false); setStep(0); setStreet(''); setForm({ street:'',apt:'',entrance:'',floor:'',intercom:'',comment:'' }); }} className="btn" style={{ marginTop: 28, width: '100%', height: 52, borderRadius: 16, border: '1px solid var(--line)', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Добавить ещё адрес</button>
+    </div>
+  );
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minHeight: 0 }}>
+
+      {/* Header */}
+      <div style={{ padding: '12px 16px 14px', background: 'var(--surface)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          {step === 1 && (
+            <button onClick={() => setStep(0)} className="btn" style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid var(--line)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>{Ic.back()}</button>
+          )}
+          <div>
+            <div className="serif" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--ink)' }}>
+              {step === 0 ? 'Новый адрес' : 'Детали адреса'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
+              {step === 0 ? 'Введите улицу и дом' : form.street}
+            </div>
+          </div>
+        </div>
+
+        {/* Progress steps */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['Адрес', 'Детали'].map((s, i) => (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ height: 3, borderRadius: 2, background: step >= i ? 'var(--ink)' : 'var(--line-2)', transition: 'background .25s' }}/>
+              <div style={{ fontSize: 10, color: step >= i ? 'var(--ink)' : 'var(--ink-3)', fontWeight: step >= i ? 600 : 400, letterSpacing: '.04em' }}>{s}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 0 — Street search */}
+      {step === 0 && (
+        <div className="no-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 16px' }}>
+          {/* Street input */}
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>Улица и дом</div>
+          <div style={{ position: 'relative' }}>
+            <div style={{ height: 50, borderRadius: 14, background: 'var(--surface)', border: `1.5px solid ${focused === 'street' ? 'var(--ink)' : 'var(--line)'}`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', transition: 'border-color .15s' }}>
+              {Ic.search('var(--ink-3)')}
+              <input
+                autoFocus
+                value={street}
+                onChange={e => { setStreet(e.target.value); setForm(f => ({...f, street: e.target.value})); }}
+                onFocus={() => setFocused('street')}
+                onBlur={() => setTimeout(() => setFocused(null), 160)}
+                placeholder="Например: ул. Лесная, 14"
+                style={{ flex: 1, border: 0, outline: 0, background: 'transparent', fontSize: 15, fontFamily: 'inherit', color: 'var(--ink)' }}
+              />
+              {loading && <div className="spinner" style={{ width: 16, height: 16, borderWidth: 1.5 }}/>}
+              {street && <button onClick={() => { setStreet(''); setSuggests([]); }} style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 0 }}>{Ic.close('var(--ink-3)')}</button>}
+            </div>
+
+            {/* Suggest list */}
+            {suggests.length > 0 && (
+              <div style={{ marginTop: 8, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 6px 24px rgba(26,26,23,.08)' }}>
+                {suggests.map((s, i) => {
+                  const full = s.displayName || s.value;
+                  const parts = full.split(', ');
+                  return (
+                    <div key={i} onMouseDown={() => pickSuggest(s)} style={{ padding: '13px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', borderBottom: i < suggests.length - 1 ? '1px solid var(--line)' : 0, cursor: 'pointer' }}
+                      className="btn"
+                    >
+                      <div style={{ color: 'var(--ink-3)', marginTop: 1, flexShrink: 0 }}>{Ic.pin('var(--ink-3)', 16)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{parts[0]}{parts[1] ? `, ${parts[1]}` : ''}</div>
+                        {parts.length > 2 && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{parts.slice(2).join(', ')}</div>}
+                      </div>
+                      <div style={{ color: 'var(--ink-3)', flexShrink: 0 }}>{Ic.chevron()}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* OR divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>или</div>
+            <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
+          </div>
+
+          {/* Manual entry shortcut */}
+          <button onClick={() => setStep(1)} className="btn" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth="1.6" strokeLinecap="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Ввести вручную</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>Если адрес не нашёлся в поиске</div>
+            </div>
+            {Ic.chevron()}
+          </button>
+
+          {/* Recent addresses hint */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>Недавние адреса</div>
+            {[
+              { text: 'ул. Лесная, 14', sub: 'Дом · Москва' },
+              { text: 'Пресненская наб., 12', sub: 'Работа · Москва' },
+            ].map((a, i) => (
+              <button key={i} onClick={() => { setStreet(a.text); setForm(f => ({...f, street: a.text})); setStep(1); }} className="btn" style={{ width: '100%', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, border: 0, background: 'transparent', borderBottom: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <div style={{ color: 'var(--ink-3)', flexShrink: 0 }}>{Ic.pin('var(--ink-3)', 18)}</div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{a.text}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{a.sub}</div>
+                </div>
+                {Ic.chevron()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 1 — Details form */}
+      {step === 1 && (
+        <div className="no-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 0' }}>
+
+          {/* Label picker */}
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>Тип адреса</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
+            {LABELS.map(l => (
+              <button key={l.id} onClick={() => setLabel(l.id)} className="btn" style={{
+                flex: 1, height: 48, borderRadius: 12,
+                border: `1.5px solid ${label === l.id ? 'var(--ink)' : 'var(--line)'}`,
+                background: label === l.id ? 'var(--ink)' : 'var(--surface)',
+                color: label === l.id ? 'var(--bg)' : 'var(--ink)',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 6, transition: 'all .15s',
+              }}>
+                <span style={{ fontSize: 16 }}>{l.icon}</span> {l.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Street (editable) */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: errors.street ? 'var(--danger)' : 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+              Улица и дом{errors.street ? ` — ${errors.street}` : ''}
+            </div>
+            <div style={{ position: 'relative', height: 48, borderRadius: 12, border: `1.5px solid ${errors.street ? 'var(--danger)' : focused === 'street2' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', display: 'flex', alignItems: 'center', padding: '0 14px', gap: 8 }}>
+              {Ic.pin('var(--ink-3)', 16)}
+              <input value={form.street} onChange={e => setField('street', e.target.value)} placeholder="ул. Лесная, 14" onFocus={() => setFocused('street2')} onBlur={() => setFocused(null)} style={{ flex: 1, border: 0, outline: 0, background: 'transparent', fontSize: 15, fontFamily: 'inherit', color: 'var(--ink)' }}/>
+            </div>
+          </div>
+
+          {/* Apt + Entrance row */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: errors.apt ? 'var(--danger)' : 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Квартира {errors.apt ? '— обязательно' : '*'}</div>
+              <input value={form.apt} onChange={e => setField('apt', e.target.value)} placeholder="47" inputMode="numeric" onFocus={() => setFocused('apt')} onBlur={() => setFocused(null)} style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${errors.apt ? 'var(--danger)' : focused === 'apt' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit', outline: 0 }}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Подъезд</div>
+              <input value={form.entrance} onChange={e => setField('entrance', e.target.value)} placeholder="3" inputMode="numeric" onFocus={() => setFocused('entrance')} onBlur={() => setFocused(null)} style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${focused === 'entrance' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit', outline: 0 }}/>
+            </div>
+          </div>
+
+          {/* Floor + Intercom row */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Этаж</div>
+              <input value={form.floor} onChange={e => setField('floor', e.target.value)} placeholder="6" inputMode="numeric" onFocus={() => setFocused('floor')} onBlur={() => setFocused(null)} style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${focused === 'floor' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit', outline: 0 }}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Домофон</div>
+              <input value={form.intercom} onChange={e => setField('intercom', e.target.value)} placeholder="47В" onFocus={() => setFocused('intercom')} onBlur={() => setFocused(null)} style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${focused === 'intercom' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit', outline: 0 }}/>
+            </div>
+          </div>
+
+          {/* Comment */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 6 }}>Комментарий курьеру</div>
+            <textarea
+              value={form.comment}
+              onChange={e => setField('comment', e.target.value)}
+              placeholder="Позвоните за 10 минут, калитка справа…"
+              rows={3}
+              onFocus={() => setFocused('comment')}
+              onBlur={() => setFocused(null)}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${focused === 'comment' ? 'var(--ink)' : 'var(--line)'}`, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontFamily: 'inherit', outline: 0, resize: 'none', lineHeight: 1.5 }}
+            />
+          </div>
+
+          {/* Delivery note */}
+          <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--accent-soft)', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 90 }}>
+            <div style={{ fontSize: 16, flexShrink: 0 }}>🚴</div>
+            <div style={{ fontSize: 12, color: 'var(--accent-deep)', lineHeight: 1.5 }}>
+              Наши курьеры могут позвонить перед приездом — укажите в комментарии, если нужно.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky CTA */}
+      {step === 1 && (
+        <div style={{ position: 'sticky', bottom: 0, padding: '12px 16px 14px', background: 'var(--bg)', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+          <button onClick={save} className="btn" style={{ width: '100%', height: 54, borderRadius: 16, border: 0, background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {Ic.check('currentColor', 18)} Сохранить адрес
+          </button>
+          {Object.keys(errors).length > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', marginTop: 8 }}>Заполните обязательные поля</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────── ROOT APP ───────────────── */
+function App() {
+  const [dark, setDark] = React.useState(false);
+  const [tweaksOpen, setTweaksOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const fn = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', fn);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', fn);
+  }, []);
+
+  return (
+    <div data-theme={dark ? 'dark' : 'light'} style={{ background: dark ? '#0a0a08' : '#e8e4db', minHeight: '100vh' }}>
+      <div className="canvas">
+
+        {/* Phone 1 — Address */}
+        <div className="phone-col">
+          <div className="col-label"><span>Экран 01</span><b>Адрес доставки</b></div>
+          <Phone dark={dark}>
+            <AddressScreen dark={dark}/>
+          </Phone>
+        </div>
+
+        {/* Phone 2 — Tracking */}
+        <div className="phone-col">
+          <div className="col-label"><span>Экран 02</span><b>Отслеживание курьера</b></div>
+          <Phone dark={dark}>
+            <TrackingScreen dark={dark}/>
+          </Phone>
+        </div>
+
+        {/* Phone 3 — Manual address entry */}
+        <div className="phone-col">
+          <div className="col-label"><span>Экран 03</span><b>Ввод адреса вручную</b></div>
+          <Phone dark={dark}>
+            <ManualAddressScreen dark={dark}/>
+          </Phone>
+        </div>
+
+      </div>
+
+      {/* Tweaks */}
+      {tweaksOpen && (
+        <div className="tp">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div className="tp-title" style={{ marginBottom: 0 }}>Tweaks</div>
+            <button onClick={() => { setTweaksOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); }} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#8a8a82', lineHeight: 1 }}>×</button>
+          </div>
+          <div className="tp-row">
+            <span>Тема</span>
+            <div className="tp-seg">
+              <button className={!dark ? 'on' : ''} onClick={() => setDark(false)}>☀ Светлая</button>
+              <button className={dark ? 'on' : ''} onClick={() => setDark(true)}>◑ Тёмная</button>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e5e2d8', fontSize: 11, color: '#6a6a62', lineHeight: 1.55 }}>
+            <b style={{ color: '#1a1a17', fontSize: 12 }}>Как пользоваться</b><br/>
+            Левый экран: введите адрес или перетащите пин на карте. Правый экран: смотрите как курьер движется в реальном времени.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
