@@ -209,7 +209,7 @@ fun NumPad(
         "7" to "PQRS", "8" to "TUV", "9" to "WXYZ",
         null to null, "0" to "", null to null,
     )
-    LazyVerticalGrid(columns = Fixed(3), ...) {
+    LazyVerticalGrid(columns = Fixed(3)) {
         // render keys
         // for null positions: Done button (index 9) and Delete (index 11)
     }
