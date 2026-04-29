@@ -1,5 +1,6 @@
 package com.example.gradka.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,6 +47,7 @@ private val ROUTE_POINTS = listOf(
     Point(55.771, 37.582),
 )
 
+@SuppressLint("UnrememberedMutableState")
 @Composable
 fun TrackingScreen(onBack: () -> Unit) {
     val colors = LocalAppColors.current
