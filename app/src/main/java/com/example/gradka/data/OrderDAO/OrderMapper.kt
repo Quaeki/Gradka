@@ -1,4 +1,6 @@
-package com.example.gradka.data
+package com.example.gradka.data.OrderDAO
+
+import com.example.gradka.domain.Order
 
 fun OrderDbModel.toOrder(): Order =
     Order(

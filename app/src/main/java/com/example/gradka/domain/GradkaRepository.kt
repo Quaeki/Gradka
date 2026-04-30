@@ -1,9 +1,5 @@
 package com.example.gradka.domain
 
-import com.example.gradka.data.Address
-import com.example.gradka.data.Order
-import com.example.gradka.data.PaymentMethod
-import com.example.gradka.data.Subscription
 import kotlinx.coroutines.flow.Flow
 
 interface GradkaRepository {

@@ -1,6 +1,6 @@
 package com.example.gradka.data.BillingDAO
 
-import com.example.gradka.data.PaymentMethod
+import com.example.gradka.domain.PaymentMethod
 
 fun BillingDbModel.toPaymentMethod(): PaymentMethod =
     PaymentMethod(

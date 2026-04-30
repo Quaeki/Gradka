@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.data.Product
+import com.example.gradka.domain.Product
 import com.example.gradka.ui.theme.*
 
 // ── helpers ──

@@ -13,9 +13,15 @@ import com.example.gradka.data.OrderDAO.toOrder
 import com.example.gradka.data.SubDAO.SubDao
 import com.example.gradka.data.SubDAO.toDbModel
 import com.example.gradka.data.SubDAO.toSubscription
+import com.example.gradka.domain.ADDRESSES
+import com.example.gradka.domain.Address
 import com.example.gradka.domain.AddressSuggestion
 import com.example.gradka.domain.GradkaRepository
 import com.example.gradka.domain.Note
+import com.example.gradka.domain.Order
+import com.example.gradka.domain.PRODUCTS
+import com.example.gradka.domain.PaymentMethod
+import com.example.gradka.domain.Subscription
 import com.example.gradka.domain.UserSession
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth

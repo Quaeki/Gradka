@@ -36,9 +36,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.gradka.AppViewModel
-import com.example.gradka.data.PRODUCTS
-import com.example.gradka.data.Product
-import com.example.gradka.data.Subscription
+import com.example.gradka.domain.PRODUCTS
+import com.example.gradka.domain.Product
+import com.example.gradka.domain.Subscription
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 

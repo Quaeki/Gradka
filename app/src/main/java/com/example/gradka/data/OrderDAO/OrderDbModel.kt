@@ -1,4 +1,4 @@
-package com.example.gradka.data
+package com.example.gradka.data.OrderDAO
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

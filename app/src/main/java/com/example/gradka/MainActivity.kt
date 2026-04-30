@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
         MapKitFactory.setApiKey(BuildConfig.YANDEX_MAPS_KEY)
         MapKitFactory.initialize(this)
         super.onCreate(savedInstanceState)
-        GradkaRepositoryImpl.getInstance(this).activity = this
+        GradkaRepositoryImpl.getInstance(this).attachActivity(this)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
@@ -32,5 +32,10 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         MapKitFactory.getInstance().onStop()
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        GradkaRepositoryImpl.getInstance(this).detachActivity(this)
+        super.onDestroy()
     }
 }

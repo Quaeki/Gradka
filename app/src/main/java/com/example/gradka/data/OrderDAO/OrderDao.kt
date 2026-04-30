@@ -1,4 +1,4 @@
-package com.example.gradka.data
+package com.example.gradka.data.OrderDAO
 
 import androidx.room.Dao
 import androidx.room.Insert

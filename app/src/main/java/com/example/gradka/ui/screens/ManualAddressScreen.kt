@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.example.gradka.AppViewModel
-import com.example.gradka.data.Address
+import com.example.gradka.domain.Address
 import com.example.gradka.domain.AddressSuggestion
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -67,7 +67,6 @@ fun ManualAddressScreen(
     var floor by remember { mutableStateOf("") }
     var intercom by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
-    var aptError by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
 
@@ -211,7 +210,7 @@ fun ManualAddressScreen(
                             ) {
                                 SearchIcon(tint = colors.ink3)
                                 Box(modifier = Modifier.weight(1f)) {
-                                    if (streetQuery.isEmpty()) Text("Например: ул. Лесная 14", style = TextStyle(fontSize = 15.sp, color = colors.ink3))
+                                    if (streetQuery.isEmpty()) Text("Введите улицу и дом", style = TextStyle(fontSize = 15.sp, color = colors.ink3))
                                     inner()
                                 }
                                 if (streetQuery.isNotEmpty()) {
@@ -423,7 +422,7 @@ fun ManualAddressScreen(
                     ManualFormField(
                         value = selectedSuggestion?.title ?: streetQuery,
                         onValueChange = {},
-                        placeholder = "ул. Лесная, 14",
+                        placeholder = "Улица и дом",
                         colors = colors,
                         readOnly = true,
                         leadingIcon = { PinIcon(tint = colors.ink3, size = 16.dp) },
@@ -434,13 +433,12 @@ fun ManualAddressScreen(
                     // Apt + Entrance
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
-                            FormFieldLabel("КВАРТИРА *", colors, error = aptError)
+                            FormFieldLabel("КВАРТИРА", colors)
                             ManualFormField(
                                 value = apt,
-                                onValueChange = { apt = it; aptError = false },
-                                placeholder = "47",
+                                onValueChange = { apt = it },
+                                placeholder = "Кв.",
                                 colors = colors,
-                                hasError = aptError,
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
@@ -448,7 +446,7 @@ fun ManualAddressScreen(
                             ManualFormField(
                                 value = entrance,
                                 onValueChange = { entrance = it },
-                                placeholder = "3",
+                                placeholder = "Подъезд",
                                 colors = colors,
                             )
                         }
@@ -463,7 +461,7 @@ fun ManualAddressScreen(
                             ManualFormField(
                                 value = floor,
                                 onValueChange = { floor = it },
-                                placeholder = "6",
+                                placeholder = "Этаж",
                                 colors = colors,
                             )
                         }
@@ -472,7 +470,7 @@ fun ManualAddressScreen(
                             ManualFormField(
                                 value = intercom,
                                 onValueChange = { intercom = it },
-                                placeholder = "47В",
+                                placeholder = "Код",
                                 colors = colors,
                             )
                         }
@@ -545,16 +543,15 @@ fun ManualAddressScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
                             ) {
-                                if (apt.isBlank()) {
-                                    aptError = true
-                                    return@clickable
-                                }
                                 val sug = selectedSuggestion
+                                val addressText = (sug?.title ?: streetQuery).trim()
+                                if (addressText.isBlank()) return@clickable
+
                                 val newAddr = Address(
                                     id = UUID.randomUUID().toString(),
                                     label = selectedLabel.label,
                                     text = buildString {
-                                        append(sug?.title ?: streetQuery)
+                                        append(addressText)
                                         if (apt.isNotBlank()) append(", кв. $apt")
                                     },
                                     note = buildString {

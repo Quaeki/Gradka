@@ -1,4 +1,4 @@
-package com.example.gradka.data
+package com.example.gradka.data.AuthDAO
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

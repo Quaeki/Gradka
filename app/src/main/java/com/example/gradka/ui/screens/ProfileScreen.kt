@@ -28,7 +28,7 @@ import com.example.gradka.AppViewModel
 import com.example.gradka.AuthEvent
 import com.example.gradka.AuthViewModel
 import com.example.gradka.AuthViewModelFactory
-import com.example.gradka.data.PRODUCTS
+import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
@@ -42,6 +42,7 @@ fun ProfileScreen(
     val colors = LocalAppColors.current
     val authState by authVm.state.collectAsState()
     val subscriptions by vm.subscriptions.collectAsState()
+    val addresses by vm.addresses.collectAsState()
 
     val rawPhone = authState.phone
     val phoneFormatted = if (rawPhone.length == 10)
@@ -194,10 +195,15 @@ fun ProfileScreen(
                     firstActiveProduct != null -> firstActiveProduct.name.split(' ').first() + " · еженедельно"
                     else -> "$subsCount на паузе"
                 }
+                val addressSubtitle = when (val count = addresses.size) {
+                    0 -> "Добавить адрес"
+                    1 -> "1 сохранён"
+                    else -> "$count сохранено"
+                }
                 val groups = listOf(
                     listOf(
                         Triple("Мои заказы",  "3 активных",         "orders"),
-                        Triple("Адреса",       "2 сохранённых",      "address"),
+                        Triple("Адреса",       addressSubtitle,      "address"),
                         Triple("Подписки",     subsSubtitle,         "subscriptions"),
                     ),
                     listOf(

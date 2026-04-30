@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.example.gradka.AppViewModel
-import com.example.gradka.data.PRODUCTS
+import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 

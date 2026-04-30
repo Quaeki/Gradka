@@ -1,6 +1,6 @@
 package com.example.gradka.data.SubDAO
 
-import com.example.gradka.data.Subscription
+import com.example.gradka.domain.Subscription
 
 fun SubDbModel.toSubscription(): Subscription =
     Subscription(

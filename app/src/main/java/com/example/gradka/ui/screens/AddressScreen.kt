@@ -32,7 +32,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.gradka.AppViewModel
-import com.example.gradka.data.Address
+import com.example.gradka.domain.Address
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 import com.google.android.gms.location.LocationServices
@@ -48,6 +48,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+private const val ADDRESS_PICKER_TITLE = "Выберите адрес на карте"
+private const val ADDRESS_PICKER_SUBTITLE = "Перетащите пин или воспользуйтесь поиском"
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -65,8 +68,8 @@ fun AddressScreen(
     var query by remember { mutableStateOf("") }
     var suggests by remember { mutableStateOf(listOf<com.example.gradka.domain.AddressSuggestion>()) }
     var showSuggests by remember { mutableStateOf(false) }
-    var detectedAddress by remember { mutableStateOf("ул. Лесная, 14") }
-    var detectedCity by remember { mutableStateOf("Москва") }
+    var detectedAddress by remember { mutableStateOf<String?>(null) }
+    var detectedCity by remember { mutableStateOf<String?>(null) }
     var apt by remember { mutableStateOf("") }
     var entrance by remember { mutableStateOf("") }
     var floor by remember { mutableStateOf("") }
@@ -78,6 +81,9 @@ fun AddressScreen(
     val mapCenter = remember { mutableStateOf(Point(55.771, 37.582)) }
     var mapRef by remember { mutableStateOf<MapView?>(null) }
     var pinRef by remember { mutableStateOf<PlacemarkMapObject?>(null) }
+    val selectedAddress = detectedAddress?.takeIf { it.isNotBlank() }
+        ?: query.trim().takeIf { it.isNotBlank() }
+    val canConfirmAddress = selectedAddress != null
 
     val locationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -96,8 +102,10 @@ fun AddressScreen(
                         Animation(Animation.Type.SMOOTH, 0.5f), null
                     )
                     scope.launch {
-                        detectedAddress = vm.reverseGeocode(pt.latitude, pt.longitude)
-                        detectedCity = "Москва"
+                        val address = vm.reverseGeocode(pt.latitude, pt.longitude)
+                            .takeIf { it.isNotBlank() }
+                        detectedAddress = address
+                        detectedCity = if (address != null) "Москва" else null
                     }
                 }
             }.addOnFailureListener { isGpsLoading = false }
@@ -227,8 +235,8 @@ fun AddressScreen(
                                             CameraPosition(pt, 16f, 0f, 0f),
                                             Animation(Animation.Type.SMOOTH, 0.4f), null
                                         )
-                                        detectedAddress = sug.title
-                                        detectedCity = sug.subtitle
+                                        detectedAddress = sug.title.takeIf { it.isNotBlank() }
+                                        detectedCity = sug.subtitle.takeIf { it.isNotBlank() }
                                     }
                                     .padding(horizontal = 14.dp, vertical = 13.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -277,7 +285,11 @@ fun AddressScreen(
                                     override fun onMapObjectDragEnd(p0: com.yandex.mapkit.map.MapObject) {
                                         val pt = (p0 as PlacemarkMapObject).geometry
                                         mapCenter.value = pt
-                                        scope.launch { detectedAddress = vm.reverseGeocode(pt.latitude, pt.longitude) }
+                                        scope.launch {
+                                            detectedAddress = vm.reverseGeocode(pt.latitude, pt.longitude)
+                                                .takeIf { it.isNotBlank() }
+                                            detectedCity = null
+                                        }
                                     }
                                 })
                                 map.addInputListener(object : InputListener {
@@ -286,6 +298,8 @@ fun AddressScreen(
                                         mapCenter.value = point
                                         scope.launch {
                                             detectedAddress = vm.reverseGeocode(point.latitude, point.longitude)
+                                                .takeIf { it.isNotBlank() }
+                                            detectedCity = null
                                         }
                                     }
                                     override fun onMapLongTap(m: Map, point: Point) {}
@@ -325,7 +339,10 @@ fun AddressScreen(
                                                 Animation(Animation.Type.SMOOTH, 0.5f), null
                                             )
                                             scope.launch {
-                                                detectedAddress = vm.reverseGeocode(pt.latitude, pt.longitude)
+                                                val address = vm.reverseGeocode(pt.latitude, pt.longitude)
+                                                    .takeIf { it.isNotBlank() }
+                                                detectedAddress = address
+                                                detectedCity = if (address != null) "Москва" else null
                                             }
                                         }
                                     }.addOnFailureListener { isGpsLoading = false }
@@ -364,8 +381,15 @@ fun AddressScreen(
                             .padding(14.dp),
                     ) {
                         Column {
-                            Text(detectedAddress, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium, color = colors.ink))
-                            Text(detectedCity, style = TextStyle(fontSize = 13.sp, color = colors.ink3), modifier = Modifier.padding(top = 4.dp))
+                            Text(
+                                selectedAddress ?: ADDRESS_PICKER_TITLE,
+                                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium, color = colors.ink),
+                            )
+                            Text(
+                                detectedCity ?: ADDRESS_PICKER_SUBTITLE,
+                                style = TextStyle(fontSize = 13.sp, color = colors.ink3),
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
                         }
                     }
 
@@ -484,18 +508,26 @@ fun AddressScreen(
                     .fillMaxWidth()
                     .height(54.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (confirmed) colors.accentSoft else colors.ink)
+                    .background(
+                        when {
+                            confirmed -> colors.accentSoft
+                            canConfirmAddress -> colors.ink
+                            else -> colors.ink3.copy(alpha = 0.35f)
+                        }
+                    )
                     .clickable(
+                        enabled = canConfirmAddress && !confirmed,
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {
+                        val addressText = selectedAddress ?: return@clickable
                         if (!confirmed) {
                             confirmed = true
                             val newAddr = Address(
                                 id = UUID.randomUUID().toString(),
                                 label = "Новый адрес",
                                 text = buildString {
-                                    append(detectedAddress)
+                                    append(addressText)
                                     if (apt.isNotBlank()) append(", кв. $apt")
                                 },
                                 note = buildString {
@@ -516,7 +548,14 @@ fun AddressScreen(
                         Text("Адрес сохранён", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = colors.accentDeep))
                     }
                 } else {
-                    Text("Подтвердить адрес", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = colors.bg))
+                    Text(
+                        "Подтвердить адрес",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.bg,
+                        ),
+                    )
                 }
             }
         }

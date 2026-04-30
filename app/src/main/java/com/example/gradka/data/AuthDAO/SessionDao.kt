@@ -1,10 +1,9 @@
-package com.example.gradka.data
+package com.example.gradka.data.AuthDAO
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.gradka.data.AuthPhoneDbModel
 
 @Dao
 interface SessionDao {
