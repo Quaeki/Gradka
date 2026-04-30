@@ -1,6 +1,8 @@
 package com.example.gradka.domain
 
-class DeleteSubscriptionUseCase(private val repository: GradkaRepository) {
+import javax.inject.Inject
+
+class DeleteSubscriptionUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(id: String) {
         repository.deleteSubscription(id)
     }

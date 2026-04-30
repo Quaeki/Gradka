@@ -1,6 +1,8 @@
 package com.example.gradka.domain
 
-class PlaceOrderUseCase(private val repository: GradkaRepository) {
+import javax.inject.Inject
+
+class PlaceOrderUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(
         cart: Map<String, Int>,
         addressId: String

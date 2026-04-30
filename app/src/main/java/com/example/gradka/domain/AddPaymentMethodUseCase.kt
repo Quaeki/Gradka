@@ -3,13 +3,12 @@ package com.example.gradka.domain
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import java.util.UUID
+import javax.inject.Inject
 
-class AddPaymentMethodUseCase(
+class AddPaymentMethodUseCase @Inject constructor(
     private val repository: GradkaRepository,
-    private val idProvider: () -> String = { UUID.randomUUID().toString() },
-    private val timeProvider: () -> Long = { System.currentTimeMillis() },
 ) {
-    fun createId(): String = idProvider()
+    fun createId(): String = UUID.randomUUID().toString()
 
     suspend operator fun invoke(
         id: String,
@@ -30,7 +29,7 @@ class AddPaymentMethodUseCase(
                 expiryMonth = expiryMonth,
                 expiryYear = expiryYear,
                 isDefault = current.isEmpty(),
-                createdAtMillis = timeProvider(),
+                createdAtMillis = System.currentTimeMillis(),
             )
         )
         return id

@@ -1,8 +1,9 @@
 package com.example.gradka.domain
 
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
-class UpdateSubscriptionUseCase(private val repository: GradkaRepository) {
+class UpdateSubscriptionUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(
         id: String,
         qty: Int? = null,

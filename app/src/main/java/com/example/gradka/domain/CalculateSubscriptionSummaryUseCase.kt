@@ -1,5 +1,6 @@
 package com.example.gradka.domain
 
+import javax.inject.Inject
 
 data class SubscriptionSummary(
     val activeCount: Int = 0,
@@ -7,7 +8,7 @@ data class SubscriptionSummary(
     val monthlySavings: Int = 0,
 )
 
-class CalculateSubscriptionSummaryUseCase {
+class CalculateSubscriptionSummaryUseCase @Inject constructor() {
     operator fun invoke(subscriptions: List<Subscription>): SubscriptionSummary {
         val snapshot = subscriptions.toList()
         val monthlyTotal = snapshot

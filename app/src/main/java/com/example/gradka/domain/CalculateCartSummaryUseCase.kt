@@ -1,5 +1,6 @@
 package com.example.gradka.domain
 
+import javax.inject.Inject
 
 data class CartSummary(
     val count: Int = 0,
@@ -8,7 +9,7 @@ data class CartSummary(
     val total: Int = 0,
 )
 
-class CalculateCartSummaryUseCase {
+class CalculateCartSummaryUseCase @Inject constructor() {
     operator fun invoke(cart: Map<String, Int>): CartSummary {
         val snapshot = cart.toMap()
         val subtotal = snapshot.entries.sumOf { (id, qty) ->

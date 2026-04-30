@@ -1,6 +1,8 @@
 package com.example.gradka.domain
 
-class DeleteNoteUseCase(
+import javax.inject.Inject
+
+class DeleteNoteUseCase @Inject constructor(
     private val repository: GradkaRepository
 ){
     suspend operator fun invoke(noteId: Int){

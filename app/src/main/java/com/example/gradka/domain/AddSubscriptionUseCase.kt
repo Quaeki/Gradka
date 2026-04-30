@@ -2,8 +2,9 @@ package com.example.gradka.domain
 
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
+import javax.inject.Inject
 
-class AddSubscriptionUseCase(private val repository: GradkaRepository) {
+class AddSubscriptionUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(productId: String, qty: Int, frequencyDays: Int) {
         val current = repository.getSubscriptions().first().toList()
         if (current.any { it.productId == productId }) return

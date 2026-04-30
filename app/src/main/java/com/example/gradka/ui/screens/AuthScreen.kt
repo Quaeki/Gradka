@@ -38,9 +38,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import android.app.Application
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.gradka.*
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -60,8 +58,7 @@ private fun formatPhone(digits: String): String {
 
 @Composable
 fun AuthScreen(onAuthDone: () -> Unit) {
-    val context = LocalContext.current
-    val vm: AuthViewModel = viewModel(factory = AuthViewModelFactory(context.applicationContext as Application))
+    val vm: AuthViewModel = hiltViewModel()
     val state by vm.state.collectAsState()
     val colors = LocalAppColors.current
 

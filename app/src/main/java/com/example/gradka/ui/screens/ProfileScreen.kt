@@ -1,6 +1,5 @@
 package com.example.gradka.ui.screens
 
-import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,17 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.gradka.AppViewModel
 import com.example.gradka.AuthEvent
 import com.example.gradka.AuthViewModel
-import com.example.gradka.AuthViewModelFactory
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -37,7 +34,7 @@ fun ProfileScreen(
     vm: AppViewModel,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {},
-    authVm: AuthViewModel = viewModel(factory = AuthViewModelFactory(LocalContext.current.applicationContext as Application)),
+    authVm: AuthViewModel = hiltViewModel(),
 ) {
     val colors = LocalAppColors.current
     val authState by authVm.state.collectAsState()

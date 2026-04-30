@@ -8,13 +8,19 @@ import androidx.core.view.WindowCompat
 import com.example.gradka.data.GradkaRepositoryImpl
 import com.example.gradka.ui.theme.GradkaTheme
 import com.yandex.mapkit.MapKitFactory
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var repository: GradkaRepositoryImpl
+
     override fun onCreate(savedInstanceState: Bundle?) {
         MapKitFactory.setApiKey(BuildConfig.YANDEX_MAPS_KEY)
         MapKitFactory.initialize(this)
         super.onCreate(savedInstanceState)
-        GradkaRepositoryImpl.getInstance(this).attachActivity(this)
+        repository.attachActivity(this)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
@@ -35,7 +41,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        GradkaRepositoryImpl.getInstance(this).detachActivity(this)
+        repository.detachActivity(this)
         super.onDestroy()
     }
 }

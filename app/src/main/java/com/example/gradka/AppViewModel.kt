@@ -37,14 +37,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
 
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class NotesScreenState(
     val notes: List<Note> = emptyList(),
     val isLoading: Boolean = false,
 )
 
-class AppViewModel(
+@HiltViewModel
+class AppViewModel @Inject constructor(
     private val getOrderUseCase: GetOrderUseCase,
     private val placeOrderUseCase: PlaceOrderUseCase,
     private val getAddressesUseCase: GetAddressesUseCase,

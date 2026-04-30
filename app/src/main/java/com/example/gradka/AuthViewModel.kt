@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.gradka.domain.ClearSessionUseCase
 import com.example.gradka.domain.GetSessionUseCase
 import com.example.gradka.domain.SaveSessionUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 enum class AuthStep { SPLASH, WELCOME, PHONE, OTP, NAME, SUCCESS, RECOVERY }
 enum class AuthMode { LOGIN, REGISTER }
@@ -47,7 +49,8 @@ sealed class AuthEvent {
     object Logout : AuthEvent()
 }
 
-class AuthViewModel(
+@HiltViewModel
+class AuthViewModel @Inject constructor(
     private val getSessionUseCase: GetSessionUseCase,
     private val saveSessionUseCase: SaveSessionUseCase,
     private val clearSessionUseCase: ClearSessionUseCase,

@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import android.app.Application
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -25,7 +23,7 @@ import androidx.compose.ui.unit.dp
 val mainTabs = setOf("home", "catalog", "fav", "cart", "profile")
 
 @Composable
-fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(LocalContext.current.applicationContext as Application))) {
+fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route ?: "onboarding"

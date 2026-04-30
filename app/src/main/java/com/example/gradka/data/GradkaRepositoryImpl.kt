@@ -1,7 +1,6 @@
 package com.example.gradka.data
 
 import android.app.Activity
-import android.content.Context
 import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
 import com.example.gradka.data.AuthDAO.SessionDao
 import com.example.gradka.data.BillingDAO.BillingDao
@@ -48,10 +47,13 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class GradkaRepositoryImpl private constructor(
+@Singleton
+class GradkaRepositoryImpl @Inject constructor(
     private val sessionDao: SessionDao,
     private val orderDao: OrderDao,
     private val subDao: SubDao,
@@ -287,24 +289,4 @@ class GradkaRepositoryImpl private constructor(
         )
     }
 
-    companion object {
-        private val LOCK = Any()
-        private var INSTANCE: GradkaRepositoryImpl? = null
-
-        fun getInstance(context: Context): GradkaRepositoryImpl {
-            INSTANCE?.let { return it }
-            synchronized(LOCK) {
-                INSTANCE?.let { return it }
-                val database = AppDatabase.getInstance(context)
-                return GradkaRepositoryImpl(
-                    sessionDao = database.sessionDao(),
-                    orderDao = database.orderDao(),
-                    subDao = database.subDao(),
-                    billingDao = database.billingDao(),
-                ).also {
-                    INSTANCE = it
-                }
-            }
-        }
-    }
 }
