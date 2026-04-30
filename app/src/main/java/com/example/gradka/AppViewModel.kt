@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.gradka.data.Address
 import com.example.gradka.data.Order
 import com.example.gradka.data.PRODUCTS
+import com.example.gradka.data.Subscription
 import com.example.gradka.domain.AddAddressUseCase
 import com.example.gradka.domain.AddNoteUseCase
 import com.example.gradka.domain.DeleteAddressUseCase
@@ -102,4 +103,71 @@ class AppViewModel(
     }
     val notes: StateFlow<List<Note>> = getAllNoteUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val subscriptions: StateFlow<List<Subscription>> = repository.getSubscriptions()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun addSubscription(productId: String, qty: Int, frequencyDays: Int) {
+        viewModelScope.launch {
+            val current = subscriptionSnapshot
+            if (current.any { it.productId == productId }) return@launch
+
+            val nextId = "s" + ((current.maxOfOrNull {
+                it.id.removePrefix("s").toIntOrNull() ?: 0
+            } ?: 0) + 1)
+
+            repository.addSubscription(
+                Subscription(
+                    id = nextId,
+                    productId = productId,
+                    qty = qty.coerceAtLeast(1),
+                    frequencyDays = frequencyDays,
+                    nextDelivery = nextDeliveryLabel(frequencyDays),
+                )
+            )
+        }
+    }
+
+    fun updateSubscription(id: String, qty: Int? = null, frequencyDays: Int? = null, active: Boolean? = null) {
+        viewModelScope.launch {
+            val cur = subscriptionSnapshot.firstOrNull { it.id == id } ?: return@launch
+            repository.updateSubscription(
+                cur.copy(
+                    qty = qty?.coerceAtLeast(1) ?: cur.qty,
+                    frequencyDays = frequencyDays ?: cur.frequencyDays,
+                    active = active ?: cur.active,
+                    nextDelivery = if (frequencyDays != null) nextDeliveryLabel(frequencyDays) else cur.nextDelivery,
+                )
+            )
+        }
+    }
+
+    fun deleteSubscription(id: String) {
+        viewModelScope.launch {
+            repository.deleteSubscription(id)
+        }
+    }
+
+    private val subscriptionSnapshot: List<Subscription>
+        get() = subscriptions.value.toList()
+
+    val subscriptionsActiveCount: Int get() = subscriptionSnapshot.count { it.active }
+    val subscriptionsMonthlyTotal: Int get() = subscriptionSnapshot
+        .filter { it.active }
+        .sumOf { sub ->
+            val price = PRODUCTS.find { it.id == sub.productId }?.price ?: 0
+            price * sub.qty * 30 / sub.frequencyDays
+        }
+    val subscriptionsMonthlySavings: Int get() = subscriptionsMonthlyTotal * 5 / 100
+}
+
+private fun nextDeliveryLabel(frequencyDays: Int): String {
+    val days = listOf("вс", "пн", "вт", "ср", "чт", "пт", "сб")
+    val months = listOf("янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
+    val cal = java.util.Calendar.getInstance()
+    cal.add(java.util.Calendar.DAY_OF_YEAR, frequencyDays)
+    val dow = days[(cal.get(java.util.Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6)]
+    val day = cal.get(java.util.Calendar.DAY_OF_MONTH)
+    val mon = months[cal.get(java.util.Calendar.MONTH).coerceIn(0, 11)]
+    return "$dow, $day $mon"
 }

@@ -4,31 +4,82 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
+import com.example.gradka.data.AuthDAO.SessionDao
+import com.example.gradka.data.OrderDAO.OrderDao
+import com.example.gradka.data.OrderDAO.OrderDbModel
+import com.example.gradka.data.SubDAO.SubDao
+import com.example.gradka.data.SubDAO.SubDbModel
 
-@Database(entities =
-    [
+@Database(
+    entities = [
         AuthPhoneDbModel::class,
         OrderDbModel::class,
+        SubDbModel::class,
     ],
-    version = 2)
+    version = 3,
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun orderDao(): OrderDao
-    companion object{
+    abstract fun subDao(): SubDao
+    companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
         private val LOCK = Any()
-        fun getInstance(context: Context) : AppDatabase{
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `orders` (
+                        `id` TEXT NOT NULL,
+                        `date` TEXT NOT NULL,
+                        `number` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `total` INTEGER NOT NULL,
+                        `items` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `subscriptions` (
+                        `id` TEXT NOT NULL,
+                        `productId` TEXT NOT NULL,
+                        `qty` INTEGER NOT NULL,
+                        `frequencyDays` INTEGER NOT NULL,
+                        `nextDelivery` TEXT NOT NULL,
+                        `active` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        fun getInstance(context: Context): AppDatabase {
             INSTANCE?.let { return it }
-            synchronized(LOCK){
-                INSTANCE?.let{return it}
+            synchronized(LOCK) {
+                INSTANCE?.let { return it }
+                val appContext = context.applicationContext
                 return Room.databaseBuilder(
-                    context = context,
+                    context = appContext,
                     klass = AppDatabase::class.java,
                     name = "gradka.db"
-                ).build().also {
-                    INSTANCE = it
-                }
+                )
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .build()
+                    .also {
+                        INSTANCE = it
+                    }
             }
         }
     }

@@ -24,20 +24,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.gradka.AppViewModel
 import com.example.gradka.AuthEvent
 import com.example.gradka.AuthViewModel
 import com.example.gradka.AuthViewModelFactory
+import com.example.gradka.data.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
 @Composable
 fun ProfileScreen(
+    vm: AppViewModel,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {},
     authVm: AuthViewModel = viewModel(factory = AuthViewModelFactory(LocalContext.current.applicationContext as Application)),
 ) {
     val colors = LocalAppColors.current
     val authState by authVm.state.collectAsState()
+    val subscriptions by vm.subscriptions.collectAsState()
 
     val rawPhone = authState.phone
     val phoneFormatted = if (rawPhone.length == 10)
@@ -164,11 +168,22 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Menu groups
+                val subsCount = subscriptions.size
+                val activeSubs = vm.subscriptionsActiveCount
+                val firstActiveSub = subscriptions.firstOrNull { it.active }
+                val firstActiveProduct = firstActiveSub?.let { s -> PRODUCTS.find { it.id == s.productId } }
+                val subsSubtitle = when {
+                    subsCount == 0 -> "Подключить со скидкой −5%"
+                    firstActiveProduct != null && activeSubs > 1 ->
+                        "${firstActiveProduct.name.split(' ').first()} и ещё ${activeSubs - 1}"
+                    firstActiveProduct != null -> firstActiveProduct.name.split(' ').first() + " · еженедельно"
+                    else -> "$subsCount на паузе"
+                }
                 val groups = listOf(
                     listOf(
                         Triple("Мои заказы",  "3 активных",         "orders"),
                         Triple("Адреса",       "2 сохранённых",      "address"),
-                        Triple("Подписки",     "Молоко · еженедельно", null),
+                        Triple("Подписки",     subsSubtitle,         "subscriptions"),
                     ),
                     listOf(
                         Triple("Промокоды",    "2 активных",         null),

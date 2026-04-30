@@ -1,8 +1,15 @@
 package com.example.gradka.data
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
+import com.example.gradka.data.AuthDAO.SessionDao
+import com.example.gradka.data.OrderDAO.OrderDao
+import com.example.gradka.data.OrderDAO.toDbModel
+import com.example.gradka.data.OrderDAO.toOrder
+import com.example.gradka.data.SubDAO.SubDao
+import com.example.gradka.data.SubDAO.toDbModel
+import com.example.gradka.data.SubDAO.toSubscription
 import com.example.gradka.domain.AddressSuggestion
 import com.example.gradka.domain.GradkaRepository
 import com.example.gradka.domain.Note
@@ -29,6 +36,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.lang.ref.WeakReference
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -36,11 +44,12 @@ import kotlin.coroutines.resumeWithException
 
 class GradkaRepositoryImpl private constructor(
     private val sessionDao: SessionDao,
-    private val orderDao: OrderDao
+    private val orderDao: OrderDao,
+    private val subDao: SubDao,
 ) : GradkaRepository {
-    var activity: Activity? = null
+    private var activityRef: WeakReference<Activity>? = null
 
-    private val addresses = MutableStateFlow(ADDRESSES.toMutableList())
+    private val addresses = MutableStateFlow(ADDRESSES.toList())
     private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
 
     private val firebaseAuth = FirebaseAuth.getInstance()
@@ -66,20 +75,47 @@ class GradkaRepositoryImpl private constructor(
         orderDao.insertOrders(listOf(newOrder.toDbModel()))
     }
 
-    override fun getAddresses(): Flow<List<Address>> = addresses
+    override fun getSubscriptions(): Flow<List<Subscription>> =
+        subDao.getSubscriptions().map { subscriptions ->
+            subscriptions.map { it.toSubscription() }
+        }
+
+    override suspend fun addSubscription(subscription: Subscription) {
+        subDao.insertSubscription(subscription.toDbModel())
+    }
+
+    override suspend fun updateSubscription(subscription: Subscription) {
+        subDao.updateSubscription(subscription.toDbModel())
+    }
+
+    override suspend fun deleteSubscription(subscriptionId: String) {
+        subDao.deleteSubscription(subscriptionId)
+    }
+
+    fun attachActivity(activity: Activity) {
+        activityRef = WeakReference(activity)
+    }
+
+    fun detachActivity(activity: Activity) {
+        if (activityRef?.get() === activity) {
+            activityRef = null
+        }
+    }
+
+    override fun getAddresses(): Flow<List<Address>> = addresses.asStateFlow()
 
     override fun addAddress(address: Address) {
-        addresses.value = (addresses.value + address).toMutableList()
+        addresses.update { current -> current + address }
     }
 
     override fun deleteAddress(addressId: String) {
-        addresses.value = addresses.value.filter { it.id != addressId }.toMutableList()
+        addresses.update { current -> current.filter { it.id != addressId } }
     }
 
     override fun setPrimaryAddress(addressId: String) {
-        addresses.value = addresses.value.map {
-            it.copy(primary = it.id == addressId)
-        }.toMutableList()
+        addresses.update { current ->
+            current.map { it.copy(primary = it.id == addressId) }
+        }
     }
 
     override suspend fun suggestAddresses(query: String): List<AddressSuggestion> =
@@ -149,7 +185,7 @@ class GradkaRepositoryImpl private constructor(
     override suspend fun clearSession() = sessionDao.clearSession()
 
     override suspend fun sendOtp(phone: String): Unit = suspendCancellableCoroutine { cont ->
-        val act = activity ?: run {
+        val act = activityRef?.get() ?: run {
             cont.resumeWithException(IllegalStateException("Activity not attached"))
             return@suspendCancellableCoroutine
         }
@@ -230,7 +266,6 @@ class GradkaRepositoryImpl private constructor(
 
     companion object {
         private val LOCK = Any()
-        @SuppressLint("StaticFieldLeak")
         private var INSTANCE: GradkaRepositoryImpl? = null
 
         fun getInstance(context: Context): GradkaRepositoryImpl {
@@ -241,6 +276,7 @@ class GradkaRepositoryImpl private constructor(
                 return GradkaRepositoryImpl(
                     sessionDao = database.sessionDao(),
                     orderDao = database.orderDao(),
+                    subDao = database.subDao(),
                 ).also {
                     INSTANCE = it
                 }
