@@ -40,8 +40,8 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
                 startDestination = "auth",
                 enterTransition = { sharedScreenEnterTransition() },
                 exitTransition = { sharedScreenExitTransition() },
-                popEnterTransition = { sharedScreenEnterTransition() },
-                popExitTransition = { sharedScreenExitTransition() },
+                popEnterTransition = { sharedScreenPopEnterTransition() },
+                popExitTransition = { sharedScreenPopExitTransition() },
             ) {
                 composable("auth") {
                     AuthScreen(onAuthDone = {
@@ -168,6 +168,7 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
                             when (route) {
                                 "orders" -> navController.navigate("orders")
                                 "address" -> navController.navigate("address")
+                                "support" -> navController.navigate("support")
                                 else -> {}
                             }
                         },
@@ -177,6 +178,10 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
                             }
                         },
                     )
+                }
+
+                composable("support") {
+                    SupportChatScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable("orders") {
@@ -233,15 +238,21 @@ private fun NavHostController.navigateTab(route: String) {
 private const val SCREEN_TRANSITION_DURATION_MS = 260
 
 private fun sharedScreenEnterTransition(): EnterTransition =
-    fadeIn(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) +
-        scaleIn(
-            animationSpec = tween(SCREEN_TRANSITION_DURATION_MS),
-            initialScale = 0.98f,
-        )
+    slideInHorizontally(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) { fullWidth ->
+        fullWidth
+    }
 
 private fun sharedScreenExitTransition(): ExitTransition =
-    fadeOut(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) +
-        scaleOut(
-            animationSpec = tween(SCREEN_TRANSITION_DURATION_MS),
-            targetScale = 0.98f,
-        )
+    slideOutHorizontally(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) { fullWidth ->
+        -fullWidth
+    }
+
+private fun sharedScreenPopEnterTransition(): EnterTransition =
+    slideInHorizontally(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) { fullWidth ->
+        -fullWidth
+    }
+
+private fun sharedScreenPopExitTransition(): ExitTransition =
+    slideOutHorizontally(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) { fullWidth ->
+        fullWidth
+    }

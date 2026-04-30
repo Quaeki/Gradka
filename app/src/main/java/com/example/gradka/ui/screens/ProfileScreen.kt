@@ -173,7 +173,7 @@ fun ProfileScreen(
                     listOf(
                         Triple("Промокоды",    "2 активных",         null),
                         Triple("Уведомления",  "Вкл",                null),
-                        Triple("Поддержка",    "Написать в чат",     null),
+                        Triple("Поддержка",    "Написать в чат",     "support"),
                     ),
                 )
 
