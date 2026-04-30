@@ -82,10 +82,10 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
             AuthEvent.PhoneSubmit -> submitPhone()
             is AuthEvent.OtpDigit -> {
                 val current = _state.value.otp
-                if (current.length < 4) {
+                if (current.length < 6) {
                     val newOtp = current + event.d
                     _state.update { it.copy(otp = newOtp, otpError = false) }
-                    if (newOtp.length == 4) verifyOtp(newOtp)
+                    if (newOtp.length == 6) verifyOtp(newOtp)
                 }
             }
             AuthEvent.OtpDelete -> _state.update { s ->
@@ -152,17 +152,13 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
         _state.update { it.copy(otpChecking = true) }
         viewModelScope.launch {
             delay(800)
-            if (code == "0000") {
-                _state.update { it.copy(otpChecking = false, otpError = true, otp = "") }
-            } else {
-                val s = _state.value
-                when {
-                    s.screen == AuthStep.RECOVERY -> _state.update { it.copy(otpChecking = false, recoveryStep = 2) }
-                    s.mode == AuthMode.REGISTER -> _state.update { it.copy(otpChecking = false, screen = AuthStep.NAME) }
-                    else -> {
-                        repository.saveSession(phone = s.phone, name = s.name)
-                        _state.update { it.copy(otpChecking = false, screen = AuthStep.SUCCESS) }
-                    }
+            val s = _state.value
+            when {
+                s.screen == AuthStep.RECOVERY -> _state.update { it.copy(otpChecking = false, recoveryStep = 2) }
+                s.mode == AuthMode.REGISTER -> _state.update { it.copy(otpChecking = false, screen = AuthStep.NAME) }
+                else -> {
+                    repository.saveSession(phone = s.phone, name = s.name)
+                    _state.update { it.copy(otpChecking = false, screen = AuthStep.SUCCESS) }
                 }
             }
         }

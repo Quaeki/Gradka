@@ -10,17 +10,28 @@ import com.example.gradka.data.Address
 import com.example.gradka.data.Order
 import com.example.gradka.data.PRODUCTS
 import com.example.gradka.domain.AddAddressUseCase
+import com.example.gradka.domain.AddNoteUseCase
 import com.example.gradka.domain.DeleteAddressUseCase
+import com.example.gradka.domain.DeleteNoteUseCase
+import com.example.gradka.domain.EditNoteUseCase
 import com.example.gradka.domain.GetAddressesUseCase
+import com.example.gradka.domain.GetAllNoteUseCase
 import com.example.gradka.domain.GetOrderUseCase
 import com.example.gradka.domain.GradkaRepository
+import com.example.gradka.domain.Note
 import com.example.gradka.domain.PlaceOrderUseCase
 import com.example.gradka.domain.SetPrimaryAddressUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
+
 import kotlinx.coroutines.launch
+
+data class NotesScreenState(
+    val notes: List<Note> = emptyList(),
+    val isLoading: Boolean = false,
+)
 
 class AppViewModel(
     private val repository: GradkaRepository,
@@ -30,6 +41,10 @@ class AppViewModel(
     private val addAddressUseCase: AddAddressUseCase,
     private val setPrimaryAddressUseCase: SetPrimaryAddressUseCase,
     private val deleteAddressUseCase: DeleteAddressUseCase,
+    private val addNoteUseCase: AddNoteUseCase,
+    private val deleteNoteUseCase: DeleteNoteUseCase,
+    private val editNoteUseCase: EditNoteUseCase,
+    private val getAllNoteUseCase: GetAllNoteUseCase
 ) : ViewModel() {
     val cart = mutableStateMapOf<String, Int>()
     var favs by mutableStateOf(setOf<String>())
@@ -75,4 +90,16 @@ class AppViewModel(
     }
     val cartDelivery: Int get() = if (cartSubtotal > 1500) 0 else 149
     val cartTotal: Int get() = cartSubtotal + cartDelivery
+
+    fun addNote(title: String, content: String) {
+        viewModelScope.launch { addNoteUseCase(title, content) }
+    }
+    fun deleteNote(noteId: Int) {
+        viewModelScope.launch { deleteNoteUseCase(noteId) }
+    }
+    fun editNote(note: Note) {
+        viewModelScope.launch { editNoteUseCase(note) }
+    }
+    val notes: StateFlow<List<Note>> = getAllNoteUseCase()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 }

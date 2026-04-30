@@ -38,10 +38,10 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
             NavHost(
                 navController = navController,
                 startDestination = "auth",
-                enterTransition = { slideInHorizontally(tween(300)) { it } },
-                exitTransition = { slideOutHorizontally(tween(300)) { -it } },
-                popEnterTransition = { slideInHorizontally(tween(300)) { -it } },
-                popExitTransition = { slideOutHorizontally(tween(300)) { it } },
+                enterTransition = { sharedScreenEnterTransition() },
+                exitTransition = { sharedScreenExitTransition() },
+                popEnterTransition = { sharedScreenEnterTransition() },
+                popExitTransition = { sharedScreenExitTransition() },
             ) {
                 composable("auth") {
                     AuthScreen(onAuthDone = {
@@ -96,6 +96,25 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
                     FavScreen(
                         vm = vm,
                         onOpenProduct = { id -> navController.navigate("product/$id") },
+                        onAddList = { navController.navigate("add_list") },
+                        onOpenList = { id -> navController.navigate("list/$id") },
+                    )
+                }
+
+                composable("add_list") {
+                    AddListScreen(
+                        vm = vm,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+
+                composable("list/{noteId}") { back ->
+                    val noteId = back.arguments?.getString("noteId")?.toIntOrNull()
+                        ?: return@composable
+                    ListDetailScreen(
+                        noteId = noteId,
+                        vm = vm,
+                        onBack = { navController.popBackStack() },
                     )
                 }
 
@@ -162,6 +181,7 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
 
                 composable("orders") {
                     OrdersScreen(
+                        vm = vm,
                         onBack = { navController.popBackStack() },
                         onTracking = { navController.navigate("tracking") },
                     )
@@ -209,3 +229,19 @@ private fun NavHostController.navigateTab(route: String) {
         restoreState = true
     }
 }
+
+private const val SCREEN_TRANSITION_DURATION_MS = 260
+
+private fun sharedScreenEnterTransition(): EnterTransition =
+    fadeIn(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) +
+        scaleIn(
+            animationSpec = tween(SCREEN_TRANSITION_DURATION_MS),
+            initialScale = 0.98f,
+        )
+
+private fun sharedScreenExitTransition(): ExitTransition =
+    fadeOut(animationSpec = tween(SCREEN_TRANSITION_DURATION_MS)) +
+        scaleOut(
+            animationSpec = tween(SCREEN_TRANSITION_DURATION_MS),
+            targetScale = 0.98f,
+        )

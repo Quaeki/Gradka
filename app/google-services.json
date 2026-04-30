@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "732620587407",
+    "project_id": "gradka-689be",
+    "storage_bucket": "gradka-689be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732620587407:android:513b63fc50d7b57678cbfa",
+        "android_client_info": {
+          "package_name": "com.example.gradka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVLnlSRe6vOSRhF_UQ2nWHEGlzRNCk0yk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

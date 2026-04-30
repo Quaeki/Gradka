@@ -403,7 +403,7 @@ private fun OtpContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                repeat(4) { i ->
+                repeat(6) { i ->
                     OtpCell(
                         modifier = Modifier.weight(1f),
                         digit = state.otp.getOrNull(i)?.toString() ?: "",
