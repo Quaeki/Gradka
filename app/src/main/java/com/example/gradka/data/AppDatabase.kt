@@ -5,9 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [AuthPhoneDbModel::class], version = 1)
+@Database(entities =
+    [
+        AuthPhoneDbModel::class,
+        OrderDbModel::class,
+    ],
+    version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
+    abstract fun orderDao(): OrderDao
     companion object{
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -19,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
                 return Room.databaseBuilder(
                     context = context,
                     klass = AppDatabase::class.java,
-                    name = "auth.db"
+                    name = "gradka.db"
                 ).build().also {
                     INSTANCE = it
                 }

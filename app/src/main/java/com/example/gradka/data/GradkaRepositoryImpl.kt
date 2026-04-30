@@ -1,5 +1,6 @@
 package com.example.gradka.data
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import com.example.gradka.domain.AddressSuggestion
@@ -25,6 +26,7 @@ import com.yandex.runtime.Error
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
@@ -33,29 +35,36 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 class GradkaRepositoryImpl private constructor(
-    private val dao: SessionDao
+    private val sessionDao: SessionDao,
+    private val orderDao: OrderDao
 ) : GradkaRepository {
-    private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
-    private val orders = MutableStateFlow(ORDERS.toMutableList())
+    var activity: Activity? = null
+
     private val addresses = MutableStateFlow(ADDRESSES.toMutableList())
+    private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
 
-    override fun placeOrder(cart: Map<String, Int>, addressId: String) {
-        val totalQty = cart.values.sum()
-        val totalPrice = cart.entries.sumOf { (id, qty) ->
-            PRODUCTS.find { it.id == id }?.price?.times(qty) ?: 0
+    private val firebaseAuth = FirebaseAuth.getInstance()
+    private var storedVerificationId: String? = null
+
+    private val searchManager = SearchFactory.getInstance()
+        .createSearchManager(SearchManagerType.ONLINE)
+
+    private val moscowBounds = BoundingBox(
+        Point(55.49, 36.80),
+        Point(56.17, 38.20),
+    )
+
+    private var suggestSession: SuggestSession? = null
+
+    override fun getOrder(): Flow<List<Order>> =
+        orderDao.getOrders().map { orders ->
+            orders.map { it.toOrder() }
         }
-        val newOrder = Order(
-            id = UUID.randomUUID().toString(),
-            date = "Сегодня",
-            number = "№ ${(10000..99999).random()}",
-            status = "В пути",
-            total = totalPrice,
-            items = totalQty,
-        )
-        orders.value = (listOf(newOrder) + orders.value).toMutableList()
-    }
 
-    override fun getOrder(): Flow<List<Order>> = orders
+    override suspend fun placeOrder(cart: Map<String, Int>, addressId: String) {
+        val newOrder = createOrderFromCart(cart)
+        orderDao.insertOrders(listOf(newOrder.toDbModel()))
+    }
 
     override fun getAddresses(): Flow<List<Address>> = addresses
 
@@ -72,17 +81,6 @@ class GradkaRepositoryImpl private constructor(
             it.copy(primary = it.id == addressId)
         }.toMutableList()
     }
-
-    private val searchManager = SearchFactory.getInstance()
-        .createSearchManager(SearchManagerType.ONLINE)
-
-    private val moscowBounds = BoundingBox(
-        Point(55.49, 36.80),
-        Point(56.17, 38.20)
-    )
-
-    private var suggestSession: SuggestSession? = null
-
 
     override suspend fun suggestAddresses(query: String): List<AddressSuggestion> =
         suspendCancellableCoroutine { cont ->
@@ -142,44 +140,29 @@ class GradkaRepositoryImpl private constructor(
             )
         }
 
-    private val firebaseAuth = FirebaseAuth.getInstance()
-    private var storedVerificationId: String? = null
-    var activity: Activity? = null
-
-    companion object{
-        private val LOCK = Any()
-        private var INSTANCE: GradkaRepositoryImpl? = null
-        fun getInstance(context: Context) : GradkaRepositoryImpl{
-            INSTANCE?.let { return it }
-            synchronized(LOCK){
-                INSTANCE?.let{return it}
-                val dao = AppDatabase.getInstance(context).sessionDao()
-                return GradkaRepositoryImpl(dao).also {
-                    INSTANCE = it
-                }
-            }
-        }
-    }
     override suspend fun getSession(): UserSession? =
-        dao.getSession()?.let { UserSession(phone = it.phone, name = it.name) }
+        sessionDao.getSession()?.let { UserSession(phone = it.phone, name = it.name) }
 
     override suspend fun saveSession(phone: String, name: String) =
-        dao.saveSession(AuthPhoneDbModel(phone = phone, name = name))
+        sessionDao.saveSession(AuthPhoneDbModel(phone = phone, name = name))
 
-    override suspend fun clearSession() = dao.clearSession()
+    override suspend fun clearSession() = sessionDao.clearSession()
 
     override suspend fun sendOtp(phone: String): Unit = suspendCancellableCoroutine { cont ->
         val act = activity ?: run {
             cont.resumeWithException(IllegalStateException("Activity not attached"))
             return@suspendCancellableCoroutine
         }
+
         val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
             override fun onVerificationCompleted(credential: PhoneAuthCredential) {
                 // Автоматическая верификация (SMS перехвачен системой) — не используем сейчас
             }
+
             override fun onVerificationFailed(e: FirebaseException) {
                 if (cont.isActive) cont.resumeWithException(e)
             }
+
             override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
                 storedVerificationId = verificationId
                 if (cont.isActive) cont.resume(Unit)
@@ -206,6 +189,8 @@ class GradkaRepositoryImpl private constructor(
             .addOnFailureListener { cont.resume(false) }
     }
 
+    override fun getAllNotes(): Flow<List<Note>> = notesListFlow.asStateFlow()
+
     override suspend fun addNote(title: String, content: String) {
         notesListFlow.update { oldList ->
             val note = Note(
@@ -217,17 +202,49 @@ class GradkaRepositoryImpl private constructor(
         }
     }
 
-    override suspend fun deleteNote(noteId: Int) {
-        notesListFlow.update { it.filter { note -> note.id != noteId } }
-    }
-
     override suspend fun editNote(note: Note) {
         notesListFlow.update { list ->
             list.map { if (it.id == note.id) note else it }
         }
     }
 
-    override fun getAllNotes(): Flow<List<Note>> {
-        return notesListFlow.asStateFlow()
+    override suspend fun deleteNote(noteId: Int) {
+        notesListFlow.update { it.filter { note -> note.id != noteId } }
+    }
+
+    private fun createOrderFromCart(cart: Map<String, Int>): Order {
+        val totalQty = cart.values.sum()
+        val totalPrice = cart.entries.sumOf { (id, qty) ->
+            PRODUCTS.find { it.id == id }?.price?.times(qty) ?: 0
+        }
+
+        return Order(
+            id = UUID.randomUUID().toString(),
+            date = "Сегодня",
+            number = "№ ${(10000..99999).random()}",
+            status = "В пути",
+            total = totalPrice,
+            items = totalQty,
+        )
+    }
+
+    companion object {
+        private val LOCK = Any()
+        @SuppressLint("StaticFieldLeak")
+        private var INSTANCE: GradkaRepositoryImpl? = null
+
+        fun getInstance(context: Context): GradkaRepositoryImpl {
+            INSTANCE?.let { return it }
+            synchronized(LOCK) {
+                INSTANCE?.let { return it }
+                val database = AppDatabase.getInstance(context)
+                return GradkaRepositoryImpl(
+                    sessionDao = database.sessionDao(),
+                    orderDao = database.orderDao(),
+                ).also {
+                    INSTANCE = it
+                }
+            }
+        }
     }
 }
