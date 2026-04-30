@@ -121,6 +121,15 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
         }
     }
 
+    fun updateName(name: String) {
+        val trimmed = name.trim()
+        viewModelScope.launch {
+            val s = _state.value
+            repository.saveSession(phone = s.phone, name = trimmed)
+            _state.update { it.copy(name = trimmed) }
+        }
+    }
+
     private fun submitPhone() {
         val s = _state.value
         if (s.phone.length < 10) {

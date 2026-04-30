@@ -164,11 +164,14 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
 
                 composable("profile") {
                     ProfileScreen(
+                        vm = vm,
                         onNavigate = { route ->
                             when (route) {
                                 "orders" -> navController.navigate("orders")
                                 "address" -> navController.navigate("address")
                                 "support" -> navController.navigate("support")
+                                "subscriptions" -> navController.navigate("subscriptions")
+                                "edit_profile" -> navController.navigate("edit_profile")
                                 else -> {}
                             }
                         },
@@ -182,6 +185,22 @@ fun AppNavigation(vm: AppViewModel = viewModel(factory = AppViewModelFactory(Loc
 
                 composable("support") {
                     SupportChatScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable("subscriptions") {
+                    SubscriptionsScreen(
+                        vm = vm,
+                        onBack = { navController.popBackStack() },
+                        onOpenProduct = { id -> navController.navigate("product/$id") },
+                    )
+                }
+
+                composable("edit_profile") {
+                    EditProfileScreen(
+                        vm = vm,
+                        onBack = { navController.popBackStack() },
+                        onSaved = { navController.popBackStack() },
+                    )
                 }
 
                 composable("orders") {

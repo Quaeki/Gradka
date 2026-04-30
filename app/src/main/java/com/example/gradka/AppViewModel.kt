@@ -51,6 +51,16 @@ class AppViewModel(
     var favs by mutableStateOf(setOf<String>())
     var catFilter by mutableStateOf("all")
 
+    var profileEmail by mutableStateOf("")
+    var profileBirthday by mutableStateOf("")
+    var profileGender by mutableStateOf("")
+
+    fun updateProfileExtras(email: String, birthday: String, gender: String) {
+        profileEmail = email.trim()
+        profileBirthday = birthday.trim()
+        profileGender = gender
+    }
+
     val orders: StateFlow<List<Order>> = getOrderUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val addresses: StateFlow<List<Address>> = getAddressesUseCase()

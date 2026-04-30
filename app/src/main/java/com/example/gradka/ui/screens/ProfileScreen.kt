@@ -70,12 +70,20 @@ fun ProfileScreen(
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 // User card
+                val cardSubtitle = when {
+                    vm.profileEmail.isNotEmpty() -> vm.profileEmail
+                    else -> phoneFormatted
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
                         .background(colors.surface)
                         .border(1.dp, colors.line, RoundedCornerShape(18.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { onNavigate("edit_profile") }
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -91,14 +99,21 @@ fun ProfileScreen(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = displayName, style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Medium, color = colors.ink))
-                        Text(text = phoneFormatted, style = TextStyle(fontSize = 12.sp, color = colors.ink3), modifier = Modifier.padding(top = 2.dp))
+                        Text(
+                            text = cardSubtitle,
+                            style = TextStyle(fontSize = 12.sp, color = colors.ink3),
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
                     }
                     Box(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
                             .border(1.dp, colors.line, CircleShape)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { onNavigate("edit_profile") },
                         contentAlignment = Alignment.Center,
                     ) { EditIcon(tint = colors.ink2) }
                 }
