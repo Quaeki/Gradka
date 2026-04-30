@@ -51,6 +51,10 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     implementation(libs.firebase.analytics)
     implementation(platform(libs.firebase.bom))
