@@ -2,7 +2,9 @@ package com.example.gradka
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.gradka.domain.GradkaRepository
+import com.example.gradka.domain.ClearSessionUseCase
+import com.example.gradka.domain.GetSessionUseCase
+import com.example.gradka.domain.SaveSessionUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +47,11 @@ sealed class AuthEvent {
     object Logout : AuthEvent()
 }
 
-class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
+class AuthViewModel(
+    private val getSessionUseCase: GetSessionUseCase,
+    private val saveSessionUseCase: SaveSessionUseCase,
+    private val clearSessionUseCase: ClearSessionUseCase,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -54,7 +60,7 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            val session = repository.getSession()
+            val session = getSessionUseCase()
             if (session != null) {
                 _state.update {
                     it.copy(
@@ -106,7 +112,7 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
             AuthEvent.NameSubmit -> {
                 val s = _state.value
                 viewModelScope.launch {
-                    repository.saveSession(phone = s.phone, name = s.name)
+                    saveSessionUseCase(phone = s.phone, name = s.name)
                 }
                 _state.update { it.copy(screen = AuthStep.SUCCESS) }
             }
@@ -115,7 +121,7 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
             }
             AuthEvent.Back -> back()
             AuthEvent.Logout -> viewModelScope.launch {
-                repository.clearSession()
+                clearSessionUseCase()
                 _state.value = AuthState()
             }
         }
@@ -125,7 +131,7 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
         val trimmed = name.trim()
         viewModelScope.launch {
             val s = _state.value
-            repository.saveSession(phone = s.phone, name = trimmed)
+            saveSessionUseCase(phone = s.phone, name = trimmed)
             _state.update { it.copy(name = trimmed) }
         }
     }
@@ -166,7 +172,7 @@ class AuthViewModel(private val repository: GradkaRepository) : ViewModel() {
                 s.screen == AuthStep.RECOVERY -> _state.update { it.copy(otpChecking = false, recoveryStep = 2) }
                 s.mode == AuthMode.REGISTER -> _state.update { it.copy(otpChecking = false, screen = AuthStep.NAME) }
                 else -> {
-                    repository.saveSession(phone = s.phone, name = s.name)
+                    saveSessionUseCase(phone = s.phone, name = s.name)
                     _state.update { it.copy(otpChecking = false, screen = AuthStep.SUCCESS) }
                 }
             }
