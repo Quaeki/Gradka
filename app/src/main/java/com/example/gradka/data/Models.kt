@@ -32,3 +32,22 @@ data class Address(
     val note: String,
     val primary: Boolean = false,
 )
+
+data class Subscription(
+    val id: String,
+    val productId: String,
+    val qty: Int,
+    val frequencyDays: Int,
+    val nextDelivery: String,
+    val active: Boolean = true,
+)
+
+data class PaymentMethod(
+    val id: String,
+    val last4: String,
+    val brand: String,
+    val expiryMonth: Int,
+    val expiryYear: Int,
+    val isDefault: Boolean = false,
+    val createdAtMillis: Long,
+)

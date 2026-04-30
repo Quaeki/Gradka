@@ -4,6 +4,9 @@ import android.app.Activity
 import android.content.Context
 import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
 import com.example.gradka.data.AuthDAO.SessionDao
+import com.example.gradka.data.BillingDAO.BillingDao
+import com.example.gradka.data.BillingDAO.toBillingDbModel
+import com.example.gradka.data.BillingDAO.toPaymentMethod
 import com.example.gradka.data.OrderDAO.OrderDao
 import com.example.gradka.data.OrderDAO.toDbModel
 import com.example.gradka.data.OrderDAO.toOrder
@@ -46,6 +49,7 @@ class GradkaRepositoryImpl private constructor(
     private val sessionDao: SessionDao,
     private val orderDao: OrderDao,
     private val subDao: SubDao,
+    private val billingDao: BillingDao,
 ) : GradkaRepository {
     private var activityRef: WeakReference<Activity>? = null
 
@@ -90,6 +94,19 @@ class GradkaRepositoryImpl private constructor(
 
     override suspend fun deleteSubscription(subscriptionId: String) {
         subDao.deleteSubscription(subscriptionId)
+    }
+
+    override fun getPaymentMethods(): Flow<List<PaymentMethod>> =
+        billingDao.getPaymentMethods().map { paymentMethods ->
+            paymentMethods.map { it.toPaymentMethod() }
+        }
+
+    override suspend fun addPaymentMethod(paymentMethod: PaymentMethod) {
+        billingDao.insertPaymentMethod(paymentMethod.toBillingDbModel())
+    }
+
+    override suspend fun deletePaymentMethod(paymentMethodId: String) {
+        billingDao.deletePaymentMethod(paymentMethodId)
     }
 
     fun attachActivity(activity: Activity) {
@@ -277,6 +294,7 @@ class GradkaRepositoryImpl private constructor(
                     sessionDao = database.sessionDao(),
                     orderDao = database.orderDao(),
                     subDao = database.subDao(),
+                    billingDao = database.billingDao(),
                 ).also {
                     INSTANCE = it
                 }

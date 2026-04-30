@@ -8,6 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
 import com.example.gradka.data.AuthDAO.SessionDao
+import com.example.gradka.data.BillingDAO.BillingDao
+import com.example.gradka.data.BillingDAO.BillingDbModel
 import com.example.gradka.data.OrderDAO.OrderDao
 import com.example.gradka.data.OrderDAO.OrderDbModel
 import com.example.gradka.data.SubDAO.SubDao
@@ -18,13 +20,15 @@ import com.example.gradka.data.SubDAO.SubDbModel
         AuthPhoneDbModel::class,
         OrderDbModel::class,
         SubDbModel::class,
+        BillingDbModel::class,
     ],
-    version = 3,
+    version = 4,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun orderDao(): OrderDao
     abstract fun subDao(): SubDao
+    abstract fun billingDao(): BillingDao
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -65,6 +69,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `billing` (
+                        `id` TEXT NOT NULL,
+                        `last4` TEXT NOT NULL,
+                        `brand` TEXT NOT NULL,
+                        `expiryMonth` INTEGER NOT NULL,
+                        `expiryYear` INTEGER NOT NULL,
+                        `isDefault` INTEGER NOT NULL,
+                        `createdAtMillis` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             INSTANCE?.let { return it }
             synchronized(LOCK) {
@@ -75,7 +98,7 @@ abstract class AppDatabase : RoomDatabase() {
                     klass = AppDatabase::class.java,
                     name = "gradka.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also {
                         INSTANCE = it

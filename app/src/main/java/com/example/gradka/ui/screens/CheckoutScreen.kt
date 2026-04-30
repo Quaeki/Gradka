@@ -43,13 +43,14 @@ fun CheckoutScreen(
 ) {
     val colors = LocalAppColors.current
     var selectedSlot by remember { mutableIntStateOf(0) }
-    var selectedPayment by remember { mutableStateOf("card") }
-    var userCard by remember { mutableStateOf<PaymentOption?>(null) }
+    var selectedPayment by remember { mutableStateOf("sbp") }
     var showCardSheet by remember { mutableStateOf(false) }
+    val addresses by vm.addresses.collectAsState()
+    val paymentMethods by vm.paymentMethods.collectAsState()
+    val deliveryAddress = addresses.firstOrNull { it.primary } ?: addresses.firstOrNull()
 
     val slots = listOf("Сегодня · 19:00–20:00", "Сегодня · 20:30–21:30", "Завтра · 08:00–09:00")
     val basePayments = listOf(
-        PaymentOption("card", "Карта •• 4821", "Visa"),
         PaymentOption("sbp", "СБП", "Система быстрых платежей"),
         PaymentOption("cash", "Наличными курьеру", "Сдача с 3 000 ₽"),
     )
@@ -114,8 +115,16 @@ fun CheckoutScreen(
                             contentAlignment = Alignment.Center,
                         ) { PinIcon(tint = colors.accentDeep, size = 20.dp) }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "ул. Лесная, 14, кв. 47", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = colors.ink))
-                            Text(text = "Код домофона 47В", style = TextStyle(fontSize = 12.sp, color = colors.ink3), modifier = Modifier.padding(top = 2.dp))
+                            Text(
+                                text = deliveryAddress?.text ?: "Добавить адрес доставки",
+                                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = colors.ink),
+                            )
+                            Text(
+                                text = deliveryAddress?.note?.takeIf { it.isNotBlank() }
+                                    ?: "Выберите адрес перед оплатой",
+                                style = TextStyle(fontSize = 12.sp, color = colors.ink3),
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
                         }
                         ChevronIcon(tint = colors.ink3)
                     }
@@ -136,15 +145,16 @@ fun CheckoutScreen(
                     // Payment
                     SectionLabel("Оплата", colors)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        basePayments.forEach { p ->
+                        paymentMethods.forEach { method ->
                             RadioRow(
-                                label = p.label, subtitle = p.sub,
-                                selected = selectedPayment == p.id,
-                                onClick = { selectedPayment = p.id },
+                                label = "Карта •• ${method.last4}",
+                                subtitle = "${method.brand} · ${expiryLabel(method.expiryMonth, method.expiryYear)}",
+                                selected = selectedPayment == method.id,
+                                onClick = { selectedPayment = method.id },
                                 colors = colors,
                             )
                         }
-                        userCard?.let { p ->
+                        basePayments.forEach { p ->
                             RadioRow(
                                 label = p.label, subtitle = p.sub,
                                 selected = selectedPayment == p.id,
@@ -207,12 +217,15 @@ fun CheckoutScreen(
                     .background(colors.ink)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null, onClick = onPay,
+                        indication = null,
+                        onClick = {
+                            if (deliveryAddress == null) onAddress() else onPay()
+                        },
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Оплатить ${vm.cartTotal} ₽",
+                    text = if (deliveryAddress == null) "Выбрать адрес" else "Оплатить ${vm.cartTotal} ₽",
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = colors.bg),
                 )
             }
@@ -223,9 +236,8 @@ fun CheckoutScreen(
         NewCardSheet(
             colors = colors,
             onDismiss = { showCardSheet = false },
-            onSave = { last4, brand ->
-                val id = "user_card"
-                userCard = PaymentOption(id = id, label = "Карта •• $last4", sub = brand)
+            onSave = { last4, brand, expiryMonth, expiryYear ->
+                val id = vm.addPaymentMethod(last4, brand, expiryMonth, expiryYear)
                 selectedPayment = id
                 showCardSheet = false
             },
@@ -336,7 +348,7 @@ private fun AddCardRow(colors: AppColors, onClick: () -> Unit) {
 private fun NewCardSheet(
     colors: AppColors,
     onDismiss: () -> Unit,
-    onSave: (last4: String, brand: String) -> Unit,
+    onSave: (last4: String, brand: String, expiryMonth: Int, expiryYear: Int) -> Unit,
 ) {
     var number by remember { mutableStateOf("") }
     var expiry by remember { mutableStateOf("") }
@@ -345,14 +357,19 @@ private fun NewCardSheet(
 
     val digits = number.filter { it.isDigit() }
     val expiryDigits = expiry.filter { it.isDigit() }
+    val expiryMonth = expiryDigits.take(2).toIntOrNull()
+    val expiryYear = expiryDigits.drop(2).take(2).toIntOrNull()?.let { 2000 + it }
+    val hasValidExpiry = expiryMonth != null &&
+        expiryYear != null &&
+        isValidExpiry(expiryMonth, expiryYear)
     val isValid = digits.length == 16 &&
-        expiryDigits.length == 4 &&
+        hasValidExpiry &&
         cvv.filter { it.isDigit() }.length == 3
 
     val brand = when {
+        digits.startsWith("220") -> "МИР"
         digits.startsWith("4") -> "Visa"
         digits.startsWith("5") || digits.startsWith("2") -> "Mastercard"
-        digits.startsWith("220") -> "МИР"
         else -> "Карта"
     }
 
@@ -492,7 +509,7 @@ private fun NewCardSheet(
                             indication = null,
                         ) {
                             if (isValid) {
-                                onSave(digits.takeLast(4), brand)
+                                onSave(digits.takeLast(4), brand, expiryMonth, expiryYear)
                             }
                         },
                     contentAlignment = Alignment.Center,
@@ -583,4 +600,18 @@ private fun CardField(
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused },
     )
+}
+
+private fun expiryLabel(month: Int, year: Int): String {
+    val monthLabel = month.coerceIn(1, 12).toString().padStart(2, '0')
+    val yearLabel = (year % 100).toString().padStart(2, '0')
+    return "$monthLabel/$yearLabel"
+}
+
+private fun isValidExpiry(month: Int, year: Int): Boolean {
+    if (month !in 1..12) return false
+    val calendar = java.util.Calendar.getInstance()
+    val currentYear = calendar.get(java.util.Calendar.YEAR)
+    val currentMonth = calendar.get(java.util.Calendar.MONTH) + 1
+    return year > currentYear || (year == currentYear && month >= currentMonth)
 }

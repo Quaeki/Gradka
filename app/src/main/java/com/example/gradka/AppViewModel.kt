@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gradka.data.Address
 import com.example.gradka.data.Order
+import com.example.gradka.data.PaymentMethod
 import com.example.gradka.data.PRODUCTS
 import com.example.gradka.data.Subscription
 import com.example.gradka.domain.AddAddressUseCase
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
 
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class NotesScreenState(
     val notes: List<Note> = emptyList(),
@@ -117,6 +119,9 @@ class AppViewModel(
     val subscriptions: StateFlow<List<Subscription>> = repository.getSubscriptions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val paymentMethods: StateFlow<List<PaymentMethod>> = repository.getPaymentMethods()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun addSubscription(productId: String, qty: Int, frequencyDays: Int) {
         viewModelScope.launch {
             val current = subscriptionSnapshot
@@ -155,6 +160,36 @@ class AppViewModel(
     fun deleteSubscription(id: String) {
         viewModelScope.launch {
             repository.deleteSubscription(id)
+        }
+    }
+
+    fun addPaymentMethod(
+        last4: String,
+        brand: String,
+        expiryMonth: Int,
+        expiryYear: Int,
+    ): String {
+        val id = UUID.randomUUID().toString()
+        val shouldMakeDefault = paymentMethods.value.toList().isEmpty()
+        viewModelScope.launch {
+            repository.addPaymentMethod(
+                PaymentMethod(
+                    id = id,
+                    last4 = last4.takeLast(4),
+                    brand = brand,
+                    expiryMonth = expiryMonth,
+                    expiryYear = expiryYear,
+                    isDefault = shouldMakeDefault,
+                    createdAtMillis = System.currentTimeMillis(),
+                )
+            )
+        }
+        return id
+    }
+
+    fun deletePaymentMethod(paymentMethodId: String) {
+        viewModelScope.launch {
+            repository.deletePaymentMethod(paymentMethodId)
         }
     }
 

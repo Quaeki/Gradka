@@ -2,6 +2,7 @@ package com.example.gradka.domain
 
 import com.example.gradka.data.Address
 import com.example.gradka.data.Order
+import com.example.gradka.data.PaymentMethod
 import com.example.gradka.data.Subscription
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,9 @@ interface GradkaRepository {
     suspend fun addSubscription(subscription: Subscription)
     suspend fun updateSubscription(subscription: Subscription)
     suspend fun deleteSubscription(subscriptionId: String)
+    fun getPaymentMethods(): Flow<List<PaymentMethod>>
+    suspend fun addPaymentMethod(paymentMethod: PaymentMethod)
+    suspend fun deletePaymentMethod(paymentMethodId: String)
     fun getAddresses(): Flow<List<Address>>
     fun addAddress(address: Address): Unit
     fun deleteAddress(addressId: String)
