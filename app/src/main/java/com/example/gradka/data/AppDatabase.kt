@@ -14,6 +14,7 @@ import com.example.gradka.data.OrderDAO.OrderDao
 import com.example.gradka.data.OrderDAO.OrderDbModel
 import com.example.gradka.data.SubDAO.SubDao
 import com.example.gradka.data.SubDAO.SubDbModel
+import javax.inject.Singleton
 
 @Database(
     entities = [

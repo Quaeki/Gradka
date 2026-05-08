@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.CatalogViewModel
 import com.example.gradka.domain.CATEGORIES
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
@@ -25,7 +25,7 @@ import com.example.gradka.ui.theme.LocalAppColors
 
 @Composable
 fun CatalogScreen(
-    vm: AppViewModel,
+    vm: CatalogViewModel,
     onOpenProduct: (String) -> Unit,
 ) {
     val colors = LocalAppColors.current

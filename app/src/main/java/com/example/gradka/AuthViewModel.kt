@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.gradka.domain.ClearSessionUseCase
 import com.example.gradka.domain.GetSessionUseCase
 import com.example.gradka.domain.SaveSessionUseCase
+import com.example.gradka.domain.SendOtpUseCase
+import com.example.gradka.domain.UpdateNameUseCase
+import com.example.gradka.domain.VerifyOtpUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -52,6 +55,9 @@ sealed class AuthEvent {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val getSessionUseCase: GetSessionUseCase,
+    private val sendOtpUseCase: SendOtpUseCase,
+    private val verifyOtpUseCase: VerifyOtpUseCase,
+    private val updateNameUseCase: UpdateNameUseCase,
     private val saveSessionUseCase: SaveSessionUseCase,
     private val clearSessionUseCase: ClearSessionUseCase,
 ) : ViewModel() {
@@ -100,10 +106,7 @@ class AuthViewModel @Inject constructor(
             AuthEvent.OtpDelete -> _state.update { s ->
                 s.copy(otp = s.otp.dropLast(1), otpError = false)
             }
-            AuthEvent.OtpResend -> {
-                _state.update { it.copy(otp = "", otpError = false, otpCountdown = 59) }
-                startCountdown()
-            }
+            AuthEvent.OtpResend -> requestOtp()
             AuthEvent.EditPhone -> _state.update { s ->
                 when (s.screen) {
                     AuthStep.OTP -> s.copy(screen = AuthStep.PHONE, otp = "", otpError = false)
@@ -114,10 +117,27 @@ class AuthViewModel @Inject constructor(
             is AuthEvent.NameInput -> _state.update { it.copy(name = event.name) }
             AuthEvent.NameSubmit -> {
                 val s = _state.value
+                val name = s.name.trim()
+                if (name.isBlank()) return
                 viewModelScope.launch {
-                    saveSessionUseCase(phone = s.phone, name = s.name)
+                    runCatching { updateNameUseCase(name) }
+                        .onSuccess { user ->
+                            saveSessionUseCase(
+                                phone = user.phone.toLocalRussianPhone(),
+                                name = user.name.orEmpty(),
+                            )
+                            _state.update {
+                                it.copy(
+                                    phone = user.phone.toLocalRussianPhone(),
+                                    name = user.name.orEmpty(),
+                                    screen = AuthStep.SUCCESS,
+                                )
+                            }
+                        }
+                        .onFailure {
+                            _state.update { state -> state.copy(name = name) }
+                        }
                 }
-                _state.update { it.copy(screen = AuthStep.SUCCESS) }
             }
             AuthEvent.GoToRecovery -> _state.update {
                 it.copy(screen = AuthStep.RECOVERY, phone = "", otp = "", otpError = false, phoneError = "", recoveryStep = 0)
@@ -133,24 +153,70 @@ class AuthViewModel @Inject constructor(
     fun updateName(name: String) {
         val trimmed = name.trim()
         viewModelScope.launch {
-            val s = _state.value
-            saveSessionUseCase(phone = s.phone, name = trimmed)
-            _state.update { it.copy(name = trimmed) }
+            runCatching { updateNameUseCase(trimmed) }
+                .onSuccess { user ->
+                    saveSessionUseCase(
+                        phone = user.phone.toLocalRussianPhone(),
+                        name = user.name.orEmpty(),
+                    )
+                    _state.update {
+                        it.copy(
+                            phone = user.phone.toLocalRussianPhone(),
+                            name = user.name.orEmpty(),
+                        )
+                    }
+                }
+                .onFailure {
+                    val s = _state.value
+                    saveSessionUseCase(phone = s.phone.toLocalRussianPhone(), name = trimmed)
+                    _state.update { it.copy(name = trimmed) }
+                }
         }
     }
 
     private fun submitPhone() {
+        requestOtp()
+    }
+
+    private fun requestOtp() {
         val s = _state.value
         if (s.phone.length < 10) {
             _state.update { it.copy(phoneError = "Введите полный номер телефона") }
             return
         }
-        if (s.screen == AuthStep.RECOVERY) {
-            _state.update { it.copy(otp = "", otpError = false, otpCountdown = 59, recoveryStep = 1) }
-        } else {
-            _state.update { it.copy(screen = AuthStep.OTP, otp = "", otpError = false, otpCountdown = 59) }
+
+        viewModelScope.launch {
+            runCatching { sendOtpUseCase(s.phone.toE164RussianPhone()) }
+                .onSuccess { retryAfterSeconds ->
+                    if (s.screen == AuthStep.RECOVERY) {
+                        _state.update {
+                            it.copy(
+                                otp = "",
+                                otpError = false,
+                                otpCountdown = retryAfterSeconds,
+                                phoneError = "",
+                                recoveryStep = 1,
+                            )
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                screen = AuthStep.OTP,
+                                otp = "",
+                                otpError = false,
+                                otpCountdown = retryAfterSeconds,
+                                phoneError = "",
+                            )
+                        }
+                    }
+                    startCountdown(retryAfterSeconds)
+                }
+                .onFailure {
+                    _state.update {
+                        it.copy(phoneError = "Не удалось отправить код. Попробуйте позже")
+                    }
+                }
         }
-        startCountdown()
     }
 
     private fun back() {
@@ -167,25 +233,62 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun verifyOtp(code: String) {
-        _state.update { it.copy(otpChecking = true) }
+        val authState = _state.value
+        _state.update { it.copy(otpChecking = true, otpError = false) }
         viewModelScope.launch {
-            delay(800)
-            val s = _state.value
-            when {
-                s.screen == AuthStep.RECOVERY -> _state.update { it.copy(otpChecking = false, recoveryStep = 2) }
-                s.mode == AuthMode.REGISTER -> _state.update { it.copy(otpChecking = false, screen = AuthStep.NAME) }
-                else -> {
-                    saveSessionUseCase(phone = s.phone, name = s.name)
-                    _state.update { it.copy(otpChecking = false, screen = AuthStep.SUCCESS) }
+            runCatching {
+                verifyOtpUseCase(authState.phone.toE164RussianPhone(), code)
+            }.onSuccess { result ->
+                val user = result.user
+                val localPhone = user.phone.toLocalRussianPhone()
+                val name = user.name.orEmpty()
+                when {
+                    authState.screen == AuthStep.RECOVERY -> _state.update {
+                        it.copy(
+                            phone = localPhone,
+                            name = name,
+                            otpChecking = false,
+                            recoveryStep = 2,
+                        )
+                    }
+                    user.isNew || authState.mode == AuthMode.REGISTER || name.isBlank() -> {
+                        _state.update {
+                            it.copy(
+                                phone = localPhone,
+                                name = name,
+                                otpChecking = false,
+                                screen = AuthStep.NAME,
+                            )
+                        }
+                    }
+                    else -> {
+                        saveSessionUseCase(phone = localPhone, name = name)
+                        _state.update {
+                            it.copy(
+                                phone = localPhone,
+                                name = name,
+                                otpChecking = false,
+                                screen = AuthStep.SUCCESS,
+                            )
+                        }
+                    }
+                }
+            }.onFailure {
+                _state.update {
+                    it.copy(
+                        otp = "",
+                        otpChecking = false,
+                        otpError = true,
+                    )
                 }
             }
         }
     }
 
-    private fun startCountdown() {
+    private fun startCountdown(startFrom: Int) {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
-            var t = 59
+            var t = startFrom
             while (t > 0) {
                 delay(1000)
                 t--
@@ -194,3 +297,13 @@ class AuthViewModel @Inject constructor(
         }
     }
 }
+
+private fun String.toE164RussianPhone(): String =
+    when {
+        startsWith("+") -> this
+        length == 10 -> "+7$this"
+        else -> this
+    }
+
+private fun String.toLocalRussianPhone(): String =
+    removePrefix("+7").takeIf { it.length == 10 } ?: this

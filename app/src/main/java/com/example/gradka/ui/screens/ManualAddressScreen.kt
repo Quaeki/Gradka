@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.AddressViewModel
 import com.example.gradka.domain.Address
 import com.example.gradka.domain.AddressSuggestion
 import com.example.gradka.ui.components.*
@@ -45,7 +45,7 @@ private enum class AddressLabel(val emoji: String, val label: String) {
 
 @Composable
 fun ManualAddressScreen(
-    vm: AppViewModel,
+    vm: AddressViewModel,
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {

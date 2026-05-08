@@ -22,14 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.SearchViewModel
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.LocalAppColors
 
 @Composable
 fun SearchScreen(
-    vm: AppViewModel,
+    vm: SearchViewModel,
     onBack: () -> Unit,
     onOpenProduct: (String) -> Unit,
 ) {

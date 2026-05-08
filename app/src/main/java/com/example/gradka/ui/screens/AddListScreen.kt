@@ -31,7 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.NotesViewModel
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.domain.Product
 import com.example.gradka.ui.components.*
@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun AddListScreen(
-    vm: AppViewModel,
+    vm: NotesViewModel,
     onBack: () -> Unit,
 ) {
     val colors = LocalAppColors.current

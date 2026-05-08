@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.example.gradka.AppViewModel
+import com.example.gradka.ProfileViewModel
 import com.example.gradka.AuthViewModel
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -37,7 +37,7 @@ private val GENDERS = listOf("Мужской", "Женский", "Не указ�
 
 @Composable
 fun EditProfileScreen(
-    vm: AppViewModel,
+    vm: ProfileViewModel,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     authVm: AuthViewModel = hiltViewModel(),

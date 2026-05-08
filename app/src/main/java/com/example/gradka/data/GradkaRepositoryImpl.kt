@@ -1,8 +1,5 @@
 package com.example.gradka.data
 
-import android.app.Activity
-import com.example.gradka.data.AuthDAO.AuthPhoneDbModel
-import com.example.gradka.data.AuthDAO.SessionDao
 import com.example.gradka.data.BillingDAO.BillingDao
 import com.example.gradka.data.BillingDAO.toBillingDbModel
 import com.example.gradka.data.BillingDAO.toPaymentMethod
@@ -21,12 +18,6 @@ import com.example.gradka.domain.Order
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.domain.PaymentMethod
 import com.example.gradka.domain.Subscription
-import com.example.gradka.domain.UserSession
-import com.google.firebase.FirebaseException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.search.Response
@@ -44,9 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.lang.ref.WeakReference
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -54,18 +43,12 @@ import kotlin.coroutines.resumeWithException
 
 @Singleton
 class GradkaRepositoryImpl @Inject constructor(
-    private val sessionDao: SessionDao,
     private val orderDao: OrderDao,
     private val subDao: SubDao,
     private val billingDao: BillingDao,
 ) : GradkaRepository {
-    private var activityRef: WeakReference<Activity>? = null
-
     private val addresses = MutableStateFlow(ADDRESSES.toList())
     private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
-
-    private val firebaseAuth = FirebaseAuth.getInstance()
-    private var storedVerificationId: String? = null
 
     private val searchManager = SearchFactory.getInstance()
         .createSearchManager(SearchManagerType.ONLINE)
@@ -115,16 +98,6 @@ class GradkaRepositoryImpl @Inject constructor(
 
     override suspend fun deletePaymentMethod(paymentMethodId: String) {
         billingDao.deletePaymentMethod(paymentMethodId)
-    }
-
-    fun attachActivity(activity: Activity) {
-        activityRef = WeakReference(activity)
-    }
-
-    fun detachActivity(activity: Activity) {
-        if (activityRef?.get() === activity) {
-            activityRef = null
-        }
     }
 
     override fun getAddresses(): Flow<List<Address>> = addresses.asStateFlow()
@@ -200,55 +173,6 @@ class GradkaRepositoryImpl @Inject constructor(
                 }
             )
         }
-
-    override suspend fun getSession(): UserSession? =
-        sessionDao.getSession()?.let { UserSession(phone = it.phone, name = it.name) }
-
-    override suspend fun saveSession(phone: String, name: String) =
-        sessionDao.saveSession(AuthPhoneDbModel(phone = phone, name = name))
-
-    override suspend fun clearSession() = sessionDao.clearSession()
-
-    override suspend fun sendOtp(phone: String): Unit = suspendCancellableCoroutine { cont ->
-        val act = activityRef?.get() ?: run {
-            cont.resumeWithException(IllegalStateException("Activity not attached"))
-            return@suspendCancellableCoroutine
-        }
-
-        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                // Автоматическая верификация (SMS перехвачен системой) — не используем сейчас
-            }
-
-            override fun onVerificationFailed(e: FirebaseException) {
-                if (cont.isActive) cont.resumeWithException(e)
-            }
-
-            override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
-                storedVerificationId = verificationId
-                if (cont.isActive) cont.resume(Unit)
-            }
-        }
-        PhoneAuthProvider.verifyPhoneNumber(
-            PhoneAuthOptions.newBuilder(firebaseAuth)
-                .setPhoneNumber("+7$phone")
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(act)
-                .setCallbacks(callbacks)
-                .build()
-        )
-    }
-
-    override suspend fun verifyOtp(phone: String, code: String): Boolean = suspendCancellableCoroutine { cont ->
-        val verificationId = storedVerificationId ?: run {
-            cont.resume(false)
-            return@suspendCancellableCoroutine
-        }
-        val credential = PhoneAuthProvider.getCredential(verificationId, code)
-        firebaseAuth.signInWithCredential(credential)
-            .addOnSuccessListener { cont.resume(true) }
-            .addOnFailureListener { cont.resume(false) }
-    }
 
     override fun getAllNotes(): Flow<List<Note>> = notesListFlow.asStateFlow()
 

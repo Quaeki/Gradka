@@ -28,6 +28,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "YANDEX_MAPS_KEY", "\"${localProperties["YANDEX_MAPS_KEY"]}\"")
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${localProperties["API_BASE_URL"] ?: "http://193.233.247.13/"}\""
+        )
     }
 
     buildTypes {
@@ -57,12 +62,14 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
     implementation(libs.firebase.analytics)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth.ktx)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

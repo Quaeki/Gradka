@@ -27,14 +27,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.HomeViewModel
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
 @Composable
 fun HomeScreen(
-    vm: AppViewModel,
+    vm: HomeViewModel,
     onOpenProduct: (String) -> Unit,
     onNavigate: (String) -> Unit,
 ) {

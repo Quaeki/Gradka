@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import com.example.gradka.AppViewModel
+import com.example.gradka.OrdersViewModel
 import com.example.gradka.domain.Order
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -41,7 +41,7 @@ private fun isActive(status: String) = status == "В пути" || status == "С�
 
 @Composable
 fun OrdersScreen(
-    vm: AppViewModel,
+    vm: OrdersViewModel,
     onBack: () -> Unit,
     onTracking: () -> Unit,
 ) {

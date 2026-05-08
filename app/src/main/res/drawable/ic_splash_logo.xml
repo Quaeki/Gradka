@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash icon: same circle + leaf as the in-app Logo composable. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Circle outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FAFAF7"
+        android:strokeWidth="6"
+        android:pathData="M144,72 A72,72 0 1,0 144,216 A72,72 0 1,0 144,72 Z" />
+
+    <!-- Leaf (filled) -->
+    <path
+        android:fillColor="#FAFAF7"
+        android:pathData="M120.24,162
+                          C120.24,79.2 201.6,79.2 180,122.4
+                          C158.4,165.6 120.24,162 120.24,162 Z" />
+</vector>

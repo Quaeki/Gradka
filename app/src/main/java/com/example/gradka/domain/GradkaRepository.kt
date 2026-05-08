@@ -18,11 +18,6 @@ interface GradkaRepository {
     fun setPrimaryAddress(addressId: String): Unit
     suspend fun suggestAddresses(query: String): List<AddressSuggestion>
     suspend fun reverseGeocode(lat: Double, lon: Double): String
-    suspend fun getSession(): UserSession?
-    suspend fun saveSession(phone: String, name: String)
-    suspend fun clearSession()
-    suspend fun sendOtp(phone: String)
-    suspend fun verifyOtp(phone: String, code: String): Boolean
     suspend fun addNote(title: String, content: String)
     suspend fun deleteNote(noteId: Int)
     suspend fun editNote(note: Note)

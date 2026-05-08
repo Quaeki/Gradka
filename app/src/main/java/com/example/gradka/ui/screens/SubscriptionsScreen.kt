@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.gradka.AppViewModel
+import com.example.gradka.SubscriptionsViewModel
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.domain.Product
 import com.example.gradka.domain.Subscription
@@ -56,7 +56,7 @@ private fun frequencyLabel(days: Int): String =
 
 @Composable
 fun SubscriptionsScreen(
-    vm: AppViewModel,
+    vm: SubscriptionsViewModel,
     onBack: () -> Unit,
     onOpenProduct: (String) -> Unit,
 ) {

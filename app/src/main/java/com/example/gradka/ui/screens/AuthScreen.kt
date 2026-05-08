@@ -96,17 +96,26 @@ fun AuthScreen(onAuthDone: () -> Unit) {
 
 @Composable
 private fun SplashContent(colors: AppColors) {
+    // Hand-off from the system splash: the logo is already on screen at the
+    // same size/position, so we keep it static and only fade in the tagline
+    // and animated dots. A tiny scale "settle" hides any sub-pixel difference.
     var visible by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.6f,
-        animationSpec = spring(dampingRatio = 0.4f, stiffness = 250f),
+    val logoScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 1.04f,
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = 220f),
         label = "splash_scale",
     )
-    val alpha by animateFloatAsState(
+    val tagAlpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(600),
-        label = "splash_alpha",
+        animationSpec = tween(durationMillis = 500, delayMillis = 120),
+        label = "splash_tag_alpha",
     )
+    val dotsAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 400, delayMillis = 280),
+        label = "splash_dots_alpha",
+    )
+
     val blink = rememberInfiniteTransition(label = "blink")
     val b1 by blink.animateFloat(0.3f, 1f, infiniteRepeatable(tween(600, easing = LinearEasing), RepeatMode.Reverse), label = "b1")
     val b2 by blink.animateFloat(0.3f, 1f, infiniteRepeatable(tween(600, 200, LinearEasing), RepeatMode.Reverse), label = "b2")
@@ -118,24 +127,63 @@ private fun SplashContent(colors: AppColors) {
         modifier = Modifier.fillMaxSize().background(colors.ink),
         contentAlignment = Alignment.Center,
     ) {
+        // Decorative concentric rings in the bottom-right corner
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cx = size.width + 100.dp.toPx()
             val cy = size.height + 100.dp.toPx()
             drawCircle(Color.White.copy(alpha = 0.06f), 220.dp.toPx(), Offset(cx, cy), style = Stroke(1.dp.toPx()))
             drawCircle(Color.White.copy(alpha = 0.08f), 140.dp.toPx(), Offset(cx, cy), style = Stroke(1.dp.toPx()))
         }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha },
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Logo(size = 36.dp, color = colors.bg, colors = colors)
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = logoScale
+                    scaleY = logoScale
+                },
+            ) {
+                Logo(size = 36.dp, color = colors.bg, colors = colors)
+            }
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = "свежее с грядки",
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.bg.copy(alpha = 0.55f),
+                    letterSpacing = 0.18.em,
+                ),
+                modifier = Modifier.graphicsLayer { this.alpha = tagAlpha },
+            )
             Spacer(Modifier.height(28.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.graphicsLayer { this.alpha = dotsAlpha },
+            ) {
                 listOf(b1, b2, b3).forEach { a ->
                     Box(Modifier.size(6.dp).clip(CircleShape).background(colors.bg.copy(alpha = a)))
                 }
             }
         }
+
+        // Footer wordmark
+        Text(
+            text = "v1.0",
+            style = TextStyle(
+                fontFamily = JetBrainsMonoFontFamily,
+                fontSize = 10.sp,
+                color = colors.bg.copy(alpha = 0.35f),
+                letterSpacing = 0.1.em,
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp)
+                .graphicsLayer { this.alpha = tagAlpha },
+        )
     }
 }
 

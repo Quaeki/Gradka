@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 val mainTabs = setOf("home", "catalog", "fav", "cart", "profile")
 
 @Composable
-fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
+fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route ?: "onboarding"
@@ -59,7 +59,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("home") {
                     HomeScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                         onNavigate = { navController.navigateTab(it) },
                     )
@@ -67,14 +67,14 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("catalog") {
                     CatalogScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                     )
                 }
 
                 composable("search") {
                     SearchScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                     )
@@ -84,7 +84,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
                     val productId = back.arguments?.getString("productId") ?: return@composable
                     ProductScreen(
                         productId = productId,
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onGoCart = { navController.navigateTab("cart") },
                     )
@@ -92,7 +92,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("fav") {
                     FavScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                         onAddList = { navController.navigate("add_list") },
                         onOpenList = { id -> navController.navigate("list/$id") },
@@ -101,7 +101,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("add_list") {
                     AddListScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -111,14 +111,14 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
                         ?: return@composable
                     ListDetailScreen(
                         noteId = noteId,
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                     )
                 }
 
                 composable("cart") {
                     CartScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onCheckout = { navController.navigate("checkout") },
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                         onCatalog = { navController.navigateTab("catalog") },
@@ -126,11 +126,12 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
                 }
 
                 composable("checkout") {
+                    val checkoutViewModel: CheckoutViewModel = hiltViewModel()
                     CheckoutScreen(
-                        vm = vm,
+                        vm = checkoutViewModel,
                         onBack = { navController.popBackStack() },
                         onPay = {
-                            vm.clearCart()
+                            checkoutViewModel.clearCart()
                             navController.navigate("success") {
                                 popUpTo("home") { inclusive = false }
                             }
@@ -145,7 +146,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("address") {
                     AddressScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onSave = { navController.popBackStack() },
                         onAddManual = { navController.navigate("manual_address") },
@@ -154,7 +155,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("manual_address") {
                     ManualAddressScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onSaved = { navController.popBackStack() },
                     )
@@ -162,7 +163,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("profile") {
                     ProfileScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onNavigate = { route ->
                             when (route) {
                                 "orders" -> navController.navigate("orders")
@@ -187,7 +188,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("subscriptions") {
                     SubscriptionsScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onOpenProduct = { id -> navController.navigate("product/$id") },
                     )
@@ -195,7 +196,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("edit_profile") {
                     EditProfileScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onSaved = { navController.popBackStack() },
                     )
@@ -203,7 +204,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("orders") {
                     OrdersScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onBack = { navController.popBackStack() },
                         onTracking = { navController.navigate("tracking") },
                     )
@@ -211,7 +212,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
 
                 composable("recipes") {
                     RecipesScreen(
-                        vm = vm,
+                        vm = hiltViewModel(),
                         onCartNavigate = { navController.navigateTab("cart") },
                     )
                 }
@@ -237,7 +238,7 @@ fun AppNavigation(vm: AppViewModel = hiltViewModel()) {
             BottomNavBar(
                 currentRoute = currentRoute,
                 onNavigate = { navController.navigateTab(it) },
-                cartCount = vm.cartCount,
+                cartCount = mainViewModel.cartCount,
                 colors = colors,
             )
         }

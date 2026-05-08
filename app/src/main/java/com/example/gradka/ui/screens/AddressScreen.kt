@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.gradka.AppViewModel
+import com.example.gradka.AddressViewModel
 import com.example.gradka.domain.Address
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
@@ -55,7 +55,7 @@ private const val ADDRESS_PICKER_SUBTITLE = "Перетащите пин или 
 @SuppressLint("MissingPermission")
 @Composable
 fun AddressScreen(
-    vm: AppViewModel,
+    vm: AddressViewModel,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onAddManual: () -> Unit,

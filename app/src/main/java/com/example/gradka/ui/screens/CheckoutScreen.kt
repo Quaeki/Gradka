@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.gradka.AppViewModel
+import com.example.gradka.CheckoutViewModel
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
@@ -36,7 +36,7 @@ private data class PaymentOption(
 
 @Composable
 fun CheckoutScreen(
-    vm: AppViewModel,
+    vm: CheckoutViewModel,
     onBack: () -> Unit,
     onPay: () -> Unit,
     onAddress: () -> Unit,

@@ -3,10 +3,12 @@ package com.example.gradka.di
 import android.content.Context
 import com.example.gradka.data.AppDatabase
 import com.example.gradka.data.AuthDAO.SessionDao
+import com.example.gradka.data.AuthRepositoryImpl
 import com.example.gradka.data.BillingDAO.BillingDao
 import com.example.gradka.data.GradkaRepositoryImpl
 import com.example.gradka.data.OrderDAO.OrderDao
 import com.example.gradka.data.SubDAO.SubDao
+import com.example.gradka.domain.AuthRepository
 import com.example.gradka.domain.GradkaRepository
 import dagger.Binds
 import dagger.Module
@@ -22,6 +24,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindGradkaRepository(repository: GradkaRepositoryImpl): GradkaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(repository: AuthRepositoryImpl): AuthRepository
 }
 
 @Module
@@ -44,4 +50,5 @@ object DatabaseModule {
 
     @Provides
     fun provideBillingDao(database: AppDatabase): BillingDao = database.billingDao()
+
 }

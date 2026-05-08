@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.example.gradka.AppViewModel
+import com.example.gradka.ProfileViewModel
 import com.example.gradka.AuthEvent
 import com.example.gradka.AuthViewModel
 import com.example.gradka.domain.PRODUCTS
@@ -31,7 +31,7 @@ import com.example.gradka.ui.theme.*
 
 @Composable
 fun ProfileScreen(
-    vm: AppViewModel,
+    vm: ProfileViewModel,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit = {},
     authVm: AuthViewModel = hiltViewModel(),

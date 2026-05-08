@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.gradka.AppViewModel
+import com.example.gradka.NotesViewModel
 import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.domain.Note
 import com.example.gradka.ui.components.*
@@ -42,7 +42,7 @@ import com.example.gradka.ui.theme.*
 @Composable
 fun ListDetailScreen(
     noteId: Int,
-    vm: AppViewModel,
+    vm: NotesViewModel,
     onBack: () -> Unit,
 ) {
     val colors = LocalAppColors.current
