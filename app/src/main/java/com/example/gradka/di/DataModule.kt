@@ -13,6 +13,8 @@ import com.example.gradka.data.SupportDAO.SupportMessageDao
 import com.example.gradka.domain.AuthRepository
 import com.example.gradka.domain.GradkaRepository
 import com.example.gradka.domain.SupportChatRepository
+import com.example.gradka.domain.SupportMessageCrypto
+import com.example.gradka.security.e2ee.SupportE2eeCipher
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -35,6 +37,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSupportChatRepository(repository: SupportChatRepositoryImpl): SupportChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSupportMessageCrypto(cipher: SupportE2eeCipher): SupportMessageCrypto
 }
 
 @Module

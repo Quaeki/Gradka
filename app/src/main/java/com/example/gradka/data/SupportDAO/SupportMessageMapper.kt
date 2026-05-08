@@ -1,8 +1,8 @@
 package com.example.gradka.data.SupportDAO
 
-import com.example.gradka.data.security.SecureTextCipher
 import com.example.gradka.domain.SupportMessage
 import com.example.gradka.domain.SupportMessageAuthor
+import com.example.gradka.security.storage.SecureTextCipher
 
 private const val AUTHOR_USER = "user"
 private const val AUTHOR_SUPPORT = "support"

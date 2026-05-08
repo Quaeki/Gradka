@@ -1,4 +1,4 @@
-package com.example.gradka.data.auth
+package com.example.gradka.security.storage
 
 import android.content.Context
 import android.content.SharedPreferences

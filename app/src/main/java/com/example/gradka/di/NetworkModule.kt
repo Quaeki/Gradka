@@ -2,6 +2,7 @@ package com.example.gradka.di
 
 import com.example.gradka.BuildConfig
 import com.example.gradka.data.AuthDAO.AuthApi
+import com.example.gradka.data.SupportDAO.SupportChatApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,6 +26,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSupportChatApi(retrofit: Retrofit): SupportChatApi =
+        retrofit.create(SupportChatApi::class.java)
 
     private fun apiBaseUrl(): String {
         val baseUrl = BuildConfig.API_BASE_URL.trim()

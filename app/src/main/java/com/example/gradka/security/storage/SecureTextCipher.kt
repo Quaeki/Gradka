@@ -1,4 +1,4 @@
-package com.example.gradka.data.security
+package com.example.gradka.security.storage
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties

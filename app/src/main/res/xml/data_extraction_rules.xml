@@ -6,6 +6,8 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="auth_tokens.xml" />
+        <exclude domain="sharedpref" path="support_e2ee_identity.xml" />
+        <exclude domain="sharedpref" path="support_conversation.xml" />
         <!-- TODO: Use <include> and <exclude> to control what is backed up.
         <include .../>
         <exclude .../>
@@ -13,5 +15,7 @@
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="auth_tokens.xml" />
+        <exclude domain="sharedpref" path="support_e2ee_identity.xml" />
+        <exclude domain="sharedpref" path="support_conversation.xml" />
     </device-transfer>
 </data-extraction-rules>

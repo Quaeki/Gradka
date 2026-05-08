@@ -7,6 +7,8 @@
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="auth_tokens.xml" />
+    <exclude domain="sharedpref" path="support_e2ee_identity.xml" />
+    <exclude domain="sharedpref" path="support_conversation.xml" />
     <!--
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>

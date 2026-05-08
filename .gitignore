@@ -13,3 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+.env
+*.env
+node_modules/
+server/support-chat/data/
+*.log
+*.jks
+*.keystore
+*.p12

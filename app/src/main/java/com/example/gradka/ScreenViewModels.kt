@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.gradka.domain.AddAddressUseCase
 import com.example.gradka.domain.AddNoteUseCase
 import com.example.gradka.domain.AddPaymentMethodUseCase
-import com.example.gradka.domain.AddSupportAutoReplyUseCase
 import com.example.gradka.domain.AddSubscriptionUseCase
 import com.example.gradka.domain.Address
 import com.example.gradka.domain.CalculateSubscriptionSummaryUseCase
@@ -15,7 +14,6 @@ import com.example.gradka.domain.DeleteNoteUseCase
 import com.example.gradka.domain.DeletePaymentMethodUseCase
 import com.example.gradka.domain.DeleteSubscriptionUseCase
 import com.example.gradka.domain.EditNoteUseCase
-import com.example.gradka.domain.EnsureSupportChatStartedUseCase
 import com.example.gradka.domain.GetAddressesUseCase
 import com.example.gradka.domain.GetAllNoteUseCase
 import com.example.gradka.domain.GetOrderUseCase
@@ -29,6 +27,7 @@ import com.example.gradka.domain.SendSupportMessageUseCase
 import com.example.gradka.domain.SetPrimaryAddressUseCase
 import com.example.gradka.domain.Subscription
 import com.example.gradka.domain.SupportMessage
+import com.example.gradka.domain.SyncSupportMessagesUseCase
 import com.example.gradka.domain.SuggestAddressesUseCase
 import com.example.gradka.domain.UpdateSubscriptionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,9 +35,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -287,34 +287,41 @@ class RecipesViewModel @Inject constructor(
 data class SupportChatUiState(
     val messages: List<SupportMessage> = emptyList(),
     val input: String = "",
-    val operatorTyping: Boolean = false,
+    val syncing: Boolean = false,
+    val syncError: String? = null,
 )
 
 @HiltViewModel
 class SupportChatViewModel @Inject constructor(
     getSupportMessagesUseCase: GetSupportMessagesUseCase,
-    private val ensureSupportChatStartedUseCase: EnsureSupportChatStartedUseCase,
     private val sendSupportMessageUseCase: SendSupportMessageUseCase,
-    private val addSupportAutoReplyUseCase: AddSupportAutoReplyUseCase,
+    private val syncSupportMessagesUseCase: SyncSupportMessagesUseCase,
     private val clearSupportChatUseCase: ClearSupportChatUseCase,
 ) : ViewModel() {
     private val messages = getSupportMessagesUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val input = MutableStateFlow("")
-    private val pendingReplies = MutableStateFlow(0)
+    private val syncState = MutableStateFlow(SupportChatSyncState())
 
     val uiState: StateFlow<SupportChatUiState> =
-        combine(messages, input, pendingReplies) { messages, input, pendingReplies ->
+        combine(messages, input, syncState.asStateFlow()) { messages, input, syncState ->
             SupportChatUiState(
                 messages = messages.toList(),
                 input = input,
-                operatorTyping = pendingReplies > 0,
+                syncing = syncState.syncing,
+                syncError = syncState.error,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SupportChatUiState())
 
     init {
         viewModelScope.launch {
-            ensureSupportChatStartedUseCase()
+            syncNow(showLoading = true)
+        }
+        viewModelScope.launch {
+            while (isActive) {
+                delay(SYNC_INTERVAL_MS)
+                syncNow(showLoading = false)
+            }
         }
     }
 
@@ -333,26 +340,52 @@ class SupportChatViewModel @Inject constructor(
     fun clearChat() {
         viewModelScope.launch {
             clearSupportChatUseCase()
-            ensureSupportChatStartedUseCase()
+            syncNow(showLoading = true)
         }
     }
 
     private fun send(text: String) {
         viewModelScope.launch {
-            val question = sendSupportMessageUseCase(text) ?: return@launch
-            input.value = ""
-            pendingReplies.update { it + 1 }
-            try {
-                delay(OPERATOR_REPLY_DELAY_MS)
-                addSupportAutoReplyUseCase(question)
-            } finally {
-                pendingReplies.update { (it - 1).coerceAtLeast(0) }
+            if (text.trim().isEmpty()) return@launch
+            val result = runCatching {
+                syncState.value = SupportChatSyncState(syncing = true)
+                sendSupportMessageUseCase(text)
+            }
+            if (result.isSuccess) {
+                input.value = ""
+                syncState.value = SupportChatSyncState()
+            } else {
+                syncState.value = SupportChatSyncState(error = result.exceptionOrNull().toUserMessage())
             }
         }
     }
 
+    private suspend fun syncNow(showLoading: Boolean) {
+        if (showLoading) {
+            syncState.value = SupportChatSyncState(syncing = true)
+        }
+        val result = runCatching { syncSupportMessagesUseCase() }
+        syncState.value = if (result.isSuccess) {
+            SupportChatSyncState()
+        } else {
+            SupportChatSyncState(error = result.exceptionOrNull().toUserMessage())
+        }
+    }
+
+    private fun Throwable?.toUserMessage(): String =
+        when {
+            this == null -> "Не удалось синхронизировать чат"
+            message?.contains("409") == true -> "Сначала зарегистрируйте ключ оператора в панели поддержки"
+            else -> "Нет связи с поддержкой. Попробуем обновить чат автоматически"
+        }
+
     private companion object {
         const val MAX_MESSAGE_LENGTH = 500
-        const val OPERATOR_REPLY_DELAY_MS = 1400L
+        const val SYNC_INTERVAL_MS = 5_000L
     }
 }
+
+private data class SupportChatSyncState(
+    val syncing: Boolean = false,
+    val error: String? = null,
+)

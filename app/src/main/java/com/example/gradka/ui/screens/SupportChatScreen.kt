@@ -57,10 +57,9 @@ fun SupportChatScreen(
         )
     }
 
-    LaunchedEffect(state.messages.size, state.operatorTyping) {
-        val lastIndex = state.messages.lastIndex + if (state.operatorTyping) 1 else 0
-        if (lastIndex >= 0) {
-            listState.animateScrollToItem(lastIndex)
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) {
+            listState.animateScrollToItem(state.messages.lastIndex)
         }
     }
 
@@ -113,6 +112,12 @@ fun SupportChatScreen(
                             fontWeight = FontWeight.Medium, letterSpacing = (-0.02).em, color = colors.ink,
                         ),
                     )
+                    val statusText = when {
+                        state.syncError != null -> state.syncError.orEmpty()
+                        state.syncing -> "синхронизация..."
+                        else -> "онлайн · обычно отвечает быстро"
+                    }
+                    val statusColor = if (state.syncError != null) colors.danger else colors.ink3
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -125,8 +130,8 @@ fun SupportChatScreen(
                                 .background(colors.accent),
                         )
                         Text(
-                            text = if (state.operatorTyping) "печатает…" else "онлайн · обычно отвечает быстро",
-                            style = TextStyle(fontSize = 11.sp, color = colors.ink3),
+                            text = statusText,
+                            style = TextStyle(fontSize = 11.sp, color = statusColor),
                         )
                     }
                 }
@@ -166,14 +171,11 @@ fun SupportChatScreen(
                     Spacer(modifier = Modifier.height(if (grouped) 0.dp else 4.dp))
                     ChatBubble(msg = msg, colors = colors, grouped = grouped)
                 }
-                if (state.operatorTyping) {
-                    item { TypingBubble(colors = colors) }
-                }
             }
 
             // ── Quick replies ──
             AnimatedVisibility(
-                visible = state.messages.size <= 1,
+                visible = state.messages.isEmpty(),
                 enter = fadeIn(tween(200)),
                 exit = fadeOut(tween(150)),
             ) {
@@ -268,7 +270,7 @@ fun SupportChatScreen(
 	                            .onFocusChanged { inputFocused = it.isFocused },
 	                    )
 
-	                    val canSend = state.input.trim().isNotEmpty()
+		                    val canSend = state.input.trim().isNotEmpty() && !state.syncing
 	                    Box(
 	                        modifier = Modifier
                             .size(40.dp)
@@ -365,33 +367,6 @@ private fun ChatBubble(msg: SupportMessage, colors: AppColors, grouped: Boolean)
                 style = TextStyle(fontSize = 10.sp, color = timeColor),
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
             )
-        }
-    }
-}
-
-@Composable
-private fun TypingBubble(colors: AppColors) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 18.dp))
-                .background(colors.surface)
-                .border(
-                    1.dp, colors.line,
-                    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 18.dp),
-                )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            repeat(3) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(colors.ink3),
-                )
-            }
         }
     }
 }

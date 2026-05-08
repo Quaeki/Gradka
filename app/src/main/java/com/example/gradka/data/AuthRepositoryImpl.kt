@@ -7,11 +7,11 @@ import com.example.gradka.data.AuthDAO.SessionDao
 import com.example.gradka.data.AuthDAO.SendCodeRequest
 import com.example.gradka.data.AuthDAO.UpdateNameRequest
 import com.example.gradka.data.AuthDAO.VerifyCodeRequest
-import com.example.gradka.data.auth.TokenStorage
 import com.example.gradka.domain.AuthRepository
 import com.example.gradka.domain.AuthResult
 import com.example.gradka.domain.AuthUser
 import com.example.gradka.domain.UserSession
+import com.example.gradka.security.storage.TokenStorage
 import javax.inject.Inject
 import javax.inject.Singleton
 

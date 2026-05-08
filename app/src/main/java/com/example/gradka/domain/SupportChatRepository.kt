@@ -7,4 +7,5 @@ interface SupportChatRepository {
     suspend fun addMessage(message: SupportMessage)
     suspend fun clearMessages()
     suspend fun hasMessages(): Boolean
+    suspend fun syncMessages()
 }

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:*; script-src 'self'; style-src 'unsafe-inline' 'self'; base-uri 'none'; object-src 'none'"
+  >
+  <title>Gradka Support</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f3ee;
+      --surface: #ffffff;
+      --line: #ddd8cf;
+      --ink: #191917;
+      --muted: #7b776f;
+      --accent: #6f8d5d;
+      --danger: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--ink);
+      color: white;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+    }
+    input:focus { border-color: var(--ink); }
+    .app {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      height: 100vh;
+    }
+    .sidebar, .chat { min-height: 0; }
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+    .settings {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 0 14px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .status.error { color: var(--danger); }
+    .conversations { overflow: auto; }
+    .conversation {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+    .conversation.active { background: #efebe3; }
+    .conversation strong { font-size: 14px; }
+    .conversation span {
+      color: var(--muted);
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .chat {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .chat-header {
+      padding: 16px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+    .chat-header strong {
+      display: block;
+      font-size: 17px;
+    }
+    .chat-header span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: auto;
+      padding: 18px;
+    }
+    .empty {
+      align-self: center;
+      color: var(--muted);
+      margin: auto;
+    }
+    .bubble {
+      max-width: min(680px, 82%);
+      border-radius: 16px;
+      padding: 10px 12px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .bubble.user {
+      align-self: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+    .bubble.support {
+      align-self: flex-end;
+      background: var(--ink);
+      color: white;
+    }
+    .bubble.error { color: var(--danger); }
+    .composer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 14px;
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+    }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { height: 42vh; border-right: 0; border-bottom: 1px solid var(--line); }
+      .chat { height: 58vh; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="sidebar">
+      <div class="settings">
+        <div class="row">
+          <input id="apiBase" placeholder="API" autocomplete="off">
+          <input id="adminToken" placeholder="Admin token" autocomplete="off">
+        </div>
+        <div class="row">
+          <input id="operatorId" placeholder="operator-main" autocomplete="off">
+          <input id="displayName" placeholder="Имя оператора" autocomplete="off">
+        </div>
+        <div class="row">
+          <input id="passphrase" placeholder="Пароль ключа" type="password" autocomplete="current-password">
+          <button id="loadKeyBtn">Открыть ключ</button>
+        </div>
+        <button id="createKeyBtn">Создать / обновить ключ поддержки</button>
+      </div>
+      <div class="title">Диалоги</div>
+      <div id="status" class="status">Ожидание настройки</div>
+      <div id="conversations" class="conversations"></div>
+    </section>
+
+    <section class="chat">
+      <div class="chat-header">
+        <strong id="chatTitle">Диалог не выбран</strong>
+        <span id="chatMeta">Сначала дождитесь сообщения пользователя</span>
+      </div>
+      <div id="messages" class="messages">
+        <div class="empty">Сообщений пока нет</div>
+      </div>
+      <div class="composer">
+        <input id="replyInput" placeholder="Ответ поддержки" autocomplete="off">
+        <button id="sendBtn" disabled>Отправить</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/operator/js/app.js"></script>
+</body>
+</html>
