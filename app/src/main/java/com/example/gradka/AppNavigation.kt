@@ -183,7 +183,10 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
                 }
 
                 composable("support") {
-                    SupportChatScreen(onBack = { navController.popBackStack() })
+                    SupportChatScreen(
+                        vm = hiltViewModel(),
+                        onBack = { navController.popBackStack() },
+                    )
                 }
 
                 composable("subscriptions") {

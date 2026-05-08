@@ -28,80 +28,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.example.gradka.SupportChatViewModel
+import com.example.gradka.domain.SupportMessage
+import com.example.gradka.domain.SupportMessageAuthor
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
-import kotlinx.coroutines.delay
-
-private data class ChatMsg(
-    val id: Int,
-    val text: String,
-    val fromUser: Boolean,
-    val time: String,
-)
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SupportChatScreen(
+    vm: SupportChatViewModel,
     onBack: () -> Unit,
 ) {
     val colors = LocalAppColors.current
-
-    var messages by remember {
-        mutableStateOf(
-            listOf(
-                ChatMsg(
-                    id = 1,
-                    text = "Здравствуйте! Я Аня, оператор поддержки Грядки. Чем могу помочь?",
-                    fromUser = false,
-                    time = "сейчас",
-                ),
-            )
-        )
-    }
-    var input by remember { mutableStateOf("") }
+    val state by vm.uiState.collectAsState()
     var inputFocused by remember { mutableStateOf(false) }
-    var operatorTyping by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    val quickReplies = listOf(
-        "Где мой заказ?",
-        "Заменить товар",
-        "Не работает оплата",
-        "Вернуть товар",
-    )
-
-    fun send(text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        val nextId = (messages.maxOfOrNull { it.id } ?: 0) + 1
-        messages = messages + ChatMsg(
-            id = nextId,
-            text = trimmed,
-            fromUser = true,
-            time = "сейчас",
+    val quickReplies = remember {
+        listOf(
+            "Где мой заказ?",
+            "Заменить товар",
+            "Не работает оплата",
+            "Вернуть товар",
         )
-        input = ""
-        operatorTyping = true
     }
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
-        }
-    }
-
-    LaunchedEffect(operatorTyping) {
-        if (operatorTyping) {
-            delay(1400)
-            val nextId = (messages.maxOfOrNull { it.id } ?: 0) + 1
-            val last = messages.lastOrNull { it.fromUser }?.text.orEmpty()
-            val reply = autoReply(last)
-            messages = messages + ChatMsg(
-                id = nextId,
-                text = reply,
-                fromUser = false,
-                time = "сейчас",
-            )
-            operatorTyping = false
+    LaunchedEffect(state.messages.size, state.operatorTyping) {
+        val lastIndex = state.messages.lastIndex + if (state.operatorTyping) 1 else 0
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
         }
     }
 
@@ -166,7 +125,7 @@ fun SupportChatScreen(
                                 .background(colors.accent),
                         )
                         Text(
-                            text = if (operatorTyping) "печатает…" else "онлайн · обычно отвечает быстро",
+                            text = if (state.operatorTyping) "печатает…" else "онлайн · обычно отвечает быстро",
                             style = TextStyle(fontSize = 11.sp, color = colors.ink3),
                         )
                     }
@@ -200,21 +159,21 @@ fun SupportChatScreen(
                     DateChip(text = "Сегодня", colors = colors)
                     Spacer(modifier = Modifier.height(6.dp))
                 }
-                items(messages.size) { index ->
-                    val msg = messages[index]
-                    val prev = messages.getOrNull(index - 1)
-                    val grouped = prev?.fromUser == msg.fromUser
+                items(state.messages.size) { index ->
+                    val msg = state.messages[index]
+                    val prev = state.messages.getOrNull(index - 1)
+                    val grouped = prev?.author == msg.author
                     Spacer(modifier = Modifier.height(if (grouped) 0.dp else 4.dp))
                     ChatBubble(msg = msg, colors = colors, grouped = grouped)
                 }
-                if (operatorTyping) {
+                if (state.operatorTyping) {
                     item { TypingBubble(colors = colors) }
                 }
             }
 
             // ── Quick replies ──
             AnimatedVisibility(
-                visible = messages.size <= 1,
+                visible = state.messages.size <= 1,
                 enter = fadeIn(tween(200)),
                 exit = fadeOut(tween(150)),
             ) {
@@ -231,12 +190,12 @@ fun SupportChatScreen(
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(colors.surface)
                                 .border(1.dp, colors.line, RoundedCornerShape(999.dp))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                ) { send(q) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                        ) {
+	                                .clickable(
+	                                    interactionSource = remember { MutableInteractionSource() },
+	                                    indication = null,
+	                                ) { vm.sendQuickReply(q) }
+	                                .padding(horizontal = 14.dp, vertical = 8.dp),
+	                        ) {
                             Text(
                                 text = q,
                                 style = TextStyle(fontSize = 12.sp, color = colors.ink2),
@@ -273,11 +232,11 @@ fun SupportChatScreen(
                         contentAlignment = Alignment.Center,
                     ) { PlusIcon(tint = colors.ink2, size = 18.dp) }
 
-                    BasicTextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        textStyle = TextStyle(fontSize = 15.sp, color = colors.ink),
-                        cursorBrush = SolidColor(colors.ink),
+	                    BasicTextField(
+	                        value = state.input,
+	                        onValueChange = vm::onInputChange,
+	                        textStyle = TextStyle(fontSize = 15.sp, color = colors.ink),
+	                        cursorBrush = SolidColor(colors.ink),
                         decorationBox = { inner ->
                             Row(
                                 modifier = Modifier
@@ -292,11 +251,11 @@ fun SupportChatScreen(
                                     )
                                     .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    if (input.isEmpty()) {
-                                        Text(
-                                            text = "Сообщение…",
+	                            ) {
+	                                Box(modifier = Modifier.weight(1f)) {
+	                                    if (state.input.isEmpty()) {
+	                                        Text(
+	                                            text = "Сообщение…",
                                             style = TextStyle(fontSize = 15.sp, color = colors.ink3),
                                         )
                                     }
@@ -306,22 +265,22 @@ fun SupportChatScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .onFocusChanged { inputFocused = it.isFocused },
-                    )
+	                            .onFocusChanged { inputFocused = it.isFocused },
+	                    )
 
-                    val canSend = input.trim().isNotEmpty()
-                    Box(
-                        modifier = Modifier
+	                    val canSend = state.input.trim().isNotEmpty()
+	                    Box(
+	                        modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(if (canSend) colors.ink else colors.surface2)
                             .clickable(
-                                enabled = canSend,
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) { send(input) },
-                        contentAlignment = Alignment.Center,
-                    ) {
+	                                enabled = canSend,
+	                                interactionSource = remember { MutableInteractionSource() },
+	                                indication = null,
+	                            ) { vm.sendInput() },
+	                        contentAlignment = Alignment.Center,
+	                    ) {
                         SendIcon(
                             tint = if (canSend) colors.bg else colors.ink3,
                             size = 18.dp,
@@ -356,12 +315,14 @@ private fun DateChip(text: String, colors: AppColors) {
 }
 
 @Composable
-private fun ChatBubble(msg: ChatMsg, colors: AppColors, grouped: Boolean) {
-    val alignment = if (msg.fromUser) Alignment.CenterEnd else Alignment.CenterStart
-    val bg = if (msg.fromUser) colors.ink else colors.surface
-    val textColor = if (msg.fromUser) colors.bg else colors.ink
-    val timeColor = if (msg.fromUser) colors.bg.copy(alpha = 0.55f) else colors.ink3
-    val shape = if (msg.fromUser) {
+private fun ChatBubble(msg: SupportMessage, colors: AppColors, grouped: Boolean) {
+    val fromUser = msg.author == SupportMessageAuthor.USER
+    val time = remember(msg.createdAtMillis) { formatMessageTime(msg.createdAtMillis) }
+    val alignment = if (fromUser) Alignment.CenterEnd else Alignment.CenterStart
+    val bg = if (fromUser) colors.ink else colors.surface
+    val textColor = if (fromUser) colors.bg else colors.ink
+    val timeColor = if (fromUser) colors.bg.copy(alpha = 0.55f) else colors.ink3
+    val shape = if (fromUser) {
         RoundedCornerShape(
             topStart = 18.dp, topEnd = 18.dp,
             bottomStart = 18.dp,
@@ -377,7 +338,7 @@ private fun ChatBubble(msg: ChatMsg, colors: AppColors, grouped: Boolean) {
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
         Column(
-            horizontalAlignment = if (msg.fromUser) Alignment.End else Alignment.Start,
+            horizontalAlignment = if (fromUser) Alignment.End else Alignment.Start,
             modifier = Modifier.widthIn(max = 280.dp),
         ) {
             Box(
@@ -385,7 +346,7 @@ private fun ChatBubble(msg: ChatMsg, colors: AppColors, grouped: Boolean) {
                     .clip(shape)
                     .background(bg)
                     .then(
-                        if (!msg.fromUser) Modifier.border(1.dp, colors.line, shape)
+                        if (!fromUser) Modifier.border(1.dp, colors.line, shape)
                         else Modifier
                     )
                     .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -400,7 +361,7 @@ private fun ChatBubble(msg: ChatMsg, colors: AppColors, grouped: Boolean) {
                 )
             }
             Text(
-                text = msg.time,
+                text = time,
                 style = TextStyle(fontSize = 10.sp, color = timeColor),
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
             )
@@ -459,16 +420,16 @@ private fun SendIcon(tint: androidx.compose.ui.graphics.Color, size: androidx.co
     }
 }
 
-private fun autoReply(question: String): String {
-    val q = question.lowercase()
-    return when {
-        q.contains("заказ") && (q.contains("где") || q.contains("статус")) ->
-            "Сейчас уточню по вашему заказу. Курьер обычно выходит на связь за 10 минут до доставки."
-        q.contains("замен") -> "Если товара не окажется, курьер предложит замену прямо в чате. Хотите указать предпочтения?"
-        q.contains("оплат") -> "Подскажите, какой способ оплаты выбран? Иногда помогает попробовать другую карту или СБП."
-        q.contains("верн") || q.contains("возврат") ->
-            "Конечно, оформим возврат. Опишите, что не так с товаром, и при возможности приложите фото."
-        q.contains("спасибо") || q.contains("ок") -> "Рада помочь! Если что-то ещё — пишите."
-        else -> "Поняла вас. Сейчас передам коллегам и вернусь с ответом в течение нескольких минут."
+private fun formatMessageTime(createdAtMillis: Long): String {
+    val now = Calendar.getInstance()
+    val messageDate = Calendar.getInstance().apply { timeInMillis = createdAtMillis }
+    val pattern = if (
+        now.get(Calendar.YEAR) == messageDate.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == messageDate.get(Calendar.DAY_OF_YEAR)
+    ) {
+        "HH:mm"
+    } else {
+        "dd.MM HH:mm"
     }
+    return SimpleDateFormat(pattern, Locale.forLanguageTag("ru-RU")).format(Date(createdAtMillis))
 }

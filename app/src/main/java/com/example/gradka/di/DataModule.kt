@@ -8,8 +8,11 @@ import com.example.gradka.data.BillingDAO.BillingDao
 import com.example.gradka.data.GradkaRepositoryImpl
 import com.example.gradka.data.OrderDAO.OrderDao
 import com.example.gradka.data.SubDAO.SubDao
+import com.example.gradka.data.SupportChatRepositoryImpl
+import com.example.gradka.data.SupportDAO.SupportMessageDao
 import com.example.gradka.domain.AuthRepository
 import com.example.gradka.domain.GradkaRepository
+import com.example.gradka.domain.SupportChatRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -28,6 +31,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(repository: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSupportChatRepository(repository: SupportChatRepositoryImpl): SupportChatRepository
 }
 
 @Module
@@ -50,5 +57,8 @@ object DatabaseModule {
 
     @Provides
     fun provideBillingDao(database: AppDatabase): BillingDao = database.billingDao()
+
+    @Provides
+    fun provideSupportMessageDao(database: AppDatabase): SupportMessageDao = database.supportMessageDao()
 
 }

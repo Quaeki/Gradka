@@ -17,7 +17,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(): Retrofit =
         Retrofit.Builder()
-            .baseUrl(BuildConfig.API_BASE_URL)
+            .baseUrl(apiBaseUrl())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
@@ -25,4 +25,12 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
+
+    private fun apiBaseUrl(): String {
+        val baseUrl = BuildConfig.API_BASE_URL.trim()
+        require(BuildConfig.DEBUG || baseUrl.startsWith("https://", ignoreCase = true)) {
+            "Release builds must use HTTPS API_BASE_URL"
+        }
+        return baseUrl
+    }
 }

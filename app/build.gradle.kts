@@ -9,8 +9,11 @@ plugins {
     alias(libs.plugins.hilt.android)
 }
 
+val localPropertiesFile = rootProject.file("local.properties")
 val localProperties = Properties().apply {
-    load(rootProject.file("local.properties").inputStream())
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    }
 }
 
 android {
@@ -36,7 +39,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
         release {
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
