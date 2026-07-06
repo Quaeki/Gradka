@@ -21,6 +21,8 @@ function createApp(config, overrides = {}) {
     sendSms: createCodeSender({
       userStore,
       telegramBot,
+      gatewayToken: config.telegramGatewayToken,
+      gatewayApiBase: config.telegramGatewayApiBase,
       smsRuApiId: config.smsRuApiId,
     }),
   });

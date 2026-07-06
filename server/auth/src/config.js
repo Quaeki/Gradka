@@ -19,6 +19,11 @@ const config = {
     windowMillis: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 60_000),
     maxRequests: Number(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || 30),
   },
+  // Optional Telegram Gateway token (https://gateway.telegram.org) for delivering
+  // OTP codes to any phone with a Telegram account, no bot registration needed.
+  // Paid: about $0.01 per delivered code.
+  telegramGatewayToken: process.env.AUTH_TELEGRAM_GATEWAY_TOKEN || "",
+  telegramGatewayApiBase: process.env.AUTH_TELEGRAM_GATEWAY_API_BASE || "https://gatewayapi.telegram.org",
   // Optional login bot (@BotFather) for delivering OTP codes via Telegram.
   // Must be a separate bot from the support-relay one: Telegram allows only
   // one getUpdates consumer per bot token.

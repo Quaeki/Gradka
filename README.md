@@ -116,11 +116,12 @@ Optional environment variables:
 
 The OTP authentication service is located in `server/auth`. It implements the `auth/send-code`, `auth/verify-code`, `auth/update-name`, and `auth/refresh` endpoints used by the app, stores users in a JSON file, and issues HS256 JWT access tokens signed with the shared `SUPPORT_JWT_SECRET`.
 
-OTP delivery order:
+OTP delivery order (each tier falls through to the next on failure):
 
-1. **Telegram** — when `AUTH_TELEGRAM_BOT_TOKEN` is set and the user has linked their phone. Create a separate login bot with @BotFather (do not reuse the support-relay bot: Telegram allows only one getUpdates consumer per token). A user opens the bot, presses Start, and taps the "Отправить мой номер" button once; after that login codes arrive in Telegram.
-2. **sms.ru** — when `SMS_RU_API_ID` is set and the phone is not linked to Telegram.
-3. **Dev mode** — with neither configured, codes are printed to the service log:
+1. **Telegram Gateway** — when `AUTH_TELEGRAM_GATEWAY_TOKEN` is set. The official verification-code service ([gateway.telegram.org](https://gateway.telegram.org)) delivers the code to any phone number that has a Telegram account — the user just enters their number in the app, no bot registration needed. Paid: about $0.01 per delivered code; register with your Telegram account and top up the balance to get a token.
+2. **Telegram bot** — when `AUTH_TELEGRAM_BOT_TOKEN` is set and the user has linked their phone. Create a separate login bot with @BotFather (do not reuse the support-relay bot: Telegram allows only one getUpdates consumer per token). A user opens the bot, presses Start, and taps the "Отправить мой номер" button once; after that login codes arrive in Telegram. Free.
+3. **sms.ru** — when `SMS_RU_API_ID` is set.
+4. **Dev mode** — with nothing configured, codes are printed to the service log:
 
 ```bash
 docker compose logs -f auth
