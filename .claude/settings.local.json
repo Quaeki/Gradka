@@ -59,7 +59,8 @@
       "Bash(git rm *)",
       "Bash(echo \"COMPILE_EXIT=$?\")",
       "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z docker compose config -q)",
-      "Bash(echo \"TESTS_EXIT=$?\")"
+      "Bash(echo \"TESTS_EXIT=$?\")",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
