@@ -17,6 +17,8 @@ import com.example.gradka.domain.EditNoteUseCase
 import com.example.gradka.domain.GetAddressesUseCase
 import com.example.gradka.domain.GetAllNoteUseCase
 import com.example.gradka.domain.GetOrderUseCase
+import com.example.gradka.domain.PlaceOrderUseCase
+import com.example.gradka.domain.SyncOrdersUseCase
 import com.example.gradka.domain.GetPaymentMethodsUseCase
 import com.example.gradka.domain.GetSupportMessagesUseCase
 import com.example.gradka.domain.GetSubscriptionsUseCase
@@ -142,6 +144,7 @@ class CartViewModel @Inject constructor(
 class CheckoutViewModel @Inject constructor(
     private val cartStore: CartStore,
     private val addPaymentMethodUseCase: AddPaymentMethodUseCase,
+    private val placeOrderUseCase: PlaceOrderUseCase,
     getAddressesUseCase: GetAddressesUseCase,
     getPaymentMethodsUseCase: GetPaymentMethodsUseCase,
 ) : ViewModel() {
@@ -163,6 +166,31 @@ class CheckoutViewModel @Inject constructor(
     }
 
     fun clearCart() = cartStore.clearCart()
+
+    /**
+     * Оформляет заказ на сервере из текущей корзины на основной адрес доставки.
+     * Корзина очищается только после успешного ответа сервера.
+     *
+     * @param onResult true — заказ создан, false — сервер недоступен или отклонил заказ.
+     */
+    fun placeOrder(onResult: (Boolean) -> Unit) {
+        val cart = cartStore.cart
+        if (cart.isEmpty()) {
+            onResult(false)
+            return
+        }
+        val addressId = addresses.value.firstOrNull { it.primary }?.id
+            ?: addresses.value.firstOrNull()?.id.orEmpty()
+
+        viewModelScope.launch {
+            runCatching { placeOrderUseCase(cart, addressId) }
+                .onSuccess {
+                    cartStore.clearCart()
+                    onResult(true)
+                }
+                .onFailure { onResult(false) }
+        }
+    }
 }
 
 @HiltViewModel
@@ -219,9 +247,17 @@ class NotesViewModel @Inject constructor(
 @HiltViewModel
 class OrdersViewModel @Inject constructor(
     getOrderUseCase: GetOrderUseCase,
+    syncOrdersUseCase: SyncOrdersUseCase,
 ) : ViewModel() {
     val orders = getOrderUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        // При недоступном сервере показываем локальный кэш из Room.
+        viewModelScope.launch {
+            runCatching { syncOrdersUseCase() }
+        }
+    }
 }
 
 @HiltViewModel

@@ -1,5 +1,6 @@
 {$DOMAIN} {
 	reverse_proxy /auth/* auth:3002
 	reverse_proxy /support/chat/* support-telegram:3001
+	reverse_proxy /orders* orders:3003
 	reverse_proxy /health support-telegram:3001
 }

@@ -136,9 +136,27 @@ npm install
 SUPPORT_JWT_SECRET=replace-with-long-random-secret PORT=3002 npm start
 ```
 
+## Orders Server
+
+The orders service is located in `server/orders` and uses PostgreSQL. Orders and their items are stored in `orders` / `order_items` tables; the price list lives in the `products` table (seeded from `src/db/catalog.js` on start) and totals are always computed server-side — prices sent by a client are ignored.
+
+User endpoints (JWT): `GET /orders/` returns the caller's order history, `POST /orders/` places an order from cart items and an address. Operator endpoints (protected by `ORDERS_ADMIN_TOKEN`):
+
+```bash
+# list latest orders
+curl http://127.0.0.1/orders/all -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN"
+
+# update status by order number (created / confirmed / delivering / delivered / cancelled)
+curl -X PATCH http://127.0.0.1/orders/10001/status \
+  -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN" \
+  -H 'content-type: application/json' -d '{"status":"delivering"}'
+```
+
+The app shows synced statuses on the orders screen (created → «Оформлен», delivering → «В пути», and so on).
+
 ## Docker Deployment
 
-The Docker configuration runs three containers: the auth service, the support-telegram service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.
+The Docker configuration runs five containers: PostgreSQL, the auth service, the orders service, the support-telegram service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.
 
 Create a local `.env` file from the example and fill it in:
 
@@ -149,6 +167,8 @@ openssl rand -hex 32   # generate the value for SUPPORT_JWT_SECRET
 
 ```env
 SUPPORT_JWT_SECRET=<random shared JWT secret>
+POSTGRES_PASSWORD=<random database password>
+ORDERS_ADMIN_TOKEN=<random token for order management>
 TELEGRAM_BOT_TOKEN=<bot token from @BotFather>
 TELEGRAM_CHAT_ID=<your chat id from @userinfobot>
 #DOMAIN=your-domain.ru

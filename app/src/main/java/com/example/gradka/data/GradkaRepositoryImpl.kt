@@ -4,8 +4,12 @@ import com.example.gradka.data.BillingDAO.BillingDao
 import com.example.gradka.data.BillingDAO.toBillingDbModel
 import com.example.gradka.data.BillingDAO.toPaymentMethod
 import com.example.gradka.data.OrderDAO.OrderDao
+import com.example.gradka.data.OrderDAO.OrdersApi
+import com.example.gradka.data.OrderDAO.PlaceOrderItem
+import com.example.gradka.data.OrderDAO.PlaceOrderRequest
 import com.example.gradka.data.OrderDAO.toDbModel
 import com.example.gradka.data.OrderDAO.toOrder
+import com.example.gradka.security.storage.TokenStorage
 import com.example.gradka.data.SubDAO.SubDao
 import com.example.gradka.data.SubDAO.toDbModel
 import com.example.gradka.data.SubDAO.toSubscription
@@ -46,6 +50,8 @@ class GradkaRepositoryImpl @Inject constructor(
     private val orderDao: OrderDao,
     private val subDao: SubDao,
     private val billingDao: BillingDao,
+    private val ordersApi: OrdersApi,
+    private val tokenStorage: TokenStorage,
 ) : GradkaRepository {
     private val addresses = MutableStateFlow(ADDRESSES.toList())
     private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
@@ -66,9 +72,26 @@ class GradkaRepositoryImpl @Inject constructor(
         }
 
     override suspend fun placeOrder(cart: Map<String, Int>, addressId: String) {
-        val newOrder = createOrderFromCart(cart)
-        orderDao.insertOrders(listOf(newOrder.toDbModel()))
+        val addressText = addresses.value.find { it.id == addressId }?.text
+            ?: addresses.value.find { it.primary }?.text.orEmpty()
+
+        ordersApi.placeOrder(
+            bearerToken = requireAccessToken(),
+            body = PlaceOrderRequest(
+                items = cart.map { (productId, qty) -> PlaceOrderItem(productId = productId, qty = qty) },
+                addressText = addressText,
+            ),
+        )
+        syncOrders()
     }
+
+    override suspend fun syncOrders() {
+        val orders = ordersApi.getOrders(requireAccessToken())
+        orderDao.replaceOrders(orders.map { it.toDbModel() })
+    }
+
+    private fun requireAccessToken(): String =
+        "Bearer ${requireNotNull(tokenStorage.getAccessToken()) { "Access token is missing" }}"
 
     override fun getSubscriptions(): Flow<List<Subscription>> =
         subDao.getSubscriptions().map { subscriptions ->
@@ -195,22 +218,6 @@ class GradkaRepositoryImpl @Inject constructor(
 
     override suspend fun deleteNote(noteId: Int) {
         notesListFlow.update { it.filter { note -> note.id != noteId } }
-    }
-
-    private fun createOrderFromCart(cart: Map<String, Int>): Order {
-        val totalQty = cart.values.sum()
-        val totalPrice = cart.entries.sumOf { (id, qty) ->
-            PRODUCTS.find { it.id == id }?.price?.times(qty) ?: 0
-        }
-
-        return Order(
-            id = UUID.randomUUID().toString(),
-            date = "Сегодня",
-            number = "№ ${(10000..99999).random()}",
-            status = "В пути",
-            total = totalPrice,
-            items = totalQty,
-        )
     }
 
 }

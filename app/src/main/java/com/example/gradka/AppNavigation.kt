@@ -1,5 +1,7 @@
 package com.example.gradka
 
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -127,13 +129,23 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
 
                 composable("checkout") {
                     val checkoutViewModel: CheckoutViewModel = hiltViewModel()
+                    val context = LocalContext.current
                     CheckoutScreen(
                         vm = checkoutViewModel,
                         onBack = { navController.popBackStack() },
                         onPay = {
-                            checkoutViewModel.clearCart()
-                            navController.navigate("success") {
-                                popUpTo("home") { inclusive = false }
+                            checkoutViewModel.placeOrder { placed ->
+                                if (placed) {
+                                    navController.navigate("success") {
+                                        popUpTo("home") { inclusive = false }
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Не удалось оформить заказ. Проверьте соединение",
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
                             }
                         },
                         onAddress = { navController.navigate("address") },

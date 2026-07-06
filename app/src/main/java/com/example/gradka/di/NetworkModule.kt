@@ -2,6 +2,7 @@ package com.example.gradka.di
 
 import com.example.gradka.BuildConfig
 import com.example.gradka.data.AuthDAO.AuthApi
+import com.example.gradka.data.OrderDAO.OrdersApi
 import com.example.gradka.data.SupportDAO.SupportChatApi
 import dagger.Module
 import dagger.Provides
@@ -58,6 +59,17 @@ object NetworkModule {
     @Singleton
     fun provideSupportChatApi(retrofit: Retrofit): SupportChatApi =
         retrofit.create(SupportChatApi::class.java)
+
+    /**
+     * Создаёт реализацию [OrdersApi] через Retrofit.
+     *
+     * @param retrofit Экземпляр Retrofit, предоставленный [provideRetrofit].
+     * @return Реализация интерфейса [OrdersApi] для работы с заказами.
+     */
+    @Provides
+    @Singleton
+    fun provideOrdersApi(retrofit: Retrofit): OrdersApi =
+        retrofit.create(OrdersApi::class.java)
 
     /**
      * Возвращает базовый URL API из BuildConfig.
