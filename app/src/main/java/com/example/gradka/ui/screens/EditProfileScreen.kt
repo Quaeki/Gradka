@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.gradka.ProfileViewModel
 import com.example.gradka.AuthViewModel
+import com.example.gradka.domain.formatFull
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
@@ -51,10 +52,8 @@ fun EditProfileScreen(
     var gender by remember { mutableStateOf(vm.profileGender.ifEmpty { GENDERS.last() }) }
 
     val rawPhone = authState.phone
-    val phoneFormatted = if (rawPhone.length == 10)
-        "+7 (${rawPhone.take(3)}) ${rawPhone.substring(3, 6)}-${rawPhone.substring(6, 8)}-${rawPhone.substring(8, 10)}"
-    else if (rawPhone.isNotEmpty()) rawPhone
-    else "Не указан"
+    val phoneFormatted =
+        if (rawPhone.isNotEmpty()) authState.country.formatFull(rawPhone) else "Не указан"
 
     val emailValid = email.isEmpty() ||
         (email.contains('@') && email.substringAfter('@').contains('.'))

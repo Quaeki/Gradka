@@ -26,6 +26,7 @@ import com.example.gradka.ProfileViewModel
 import com.example.gradka.AuthEvent
 import com.example.gradka.AuthViewModel
 import com.example.gradka.domain.PRODUCTS
+import com.example.gradka.domain.formatFull
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 
@@ -42,9 +43,7 @@ fun ProfileScreen(
     val addresses by vm.addresses.collectAsState()
 
     val rawPhone = authState.phone
-    val phoneFormatted = if (rawPhone.length == 10)
-        "+7 (${rawPhone.take(3)}) ${rawPhone.substring(3, 6)}-${rawPhone.substring(6, 8)}-${rawPhone.substring(8, 10)}"
-    else rawPhone
+    val phoneFormatted = if (rawPhone.isNotEmpty()) authState.country.formatFull(rawPhone) else rawPhone
 
     val displayName = authState.name.ifEmpty { "Пользователь" }
     val initials = displayName.trim().split(" ")

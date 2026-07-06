@@ -15,8 +15,6 @@ import com.example.gradka.security.storage.TokenStorage
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val RUSSIAN_PHONE_DIGITS = 10
-
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
@@ -24,14 +22,14 @@ class AuthRepositoryImpl @Inject constructor(
     private val tokenStorage: TokenStorage,
 ) : AuthRepository {
     override suspend fun sendCode(phone: String): Int {
-        val response = api.sendCode(SendCodeRequest(phone.toE164RussianPhone()))
+        val response = api.sendCode(SendCodeRequest(phone))
         return response.retryAfterSeconds
     }
 
     override suspend fun verifyCode(phone: String, code: String): AuthResult {
         val response = api.verifyCode(
             VerifyCodeRequest(
-                phone = phone.toE164RussianPhone(),
+                phone = phone,
                 code = code,
             ),
         )
@@ -59,7 +57,7 @@ class AuthRepositoryImpl @Inject constructor(
 
         sessionDao.saveSession(
             AuthPhoneDbModel(
-                phone = user.phone.toLocalRussianPhone(),
+                phone = user.phone,
                 name = user.name.orEmpty(),
             ),
         )
@@ -73,7 +71,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun saveLocalSession(phone: String, name: String) {
         sessionDao.saveSession(
             AuthPhoneDbModel(
-                phone = phone.toLocalRussianPhone(),
+                phone = phone,
                 name = name.trim(),
             ),
         )
@@ -92,13 +90,3 @@ private fun AuthUserDto.toAuthUser(): AuthUser =
         name = name,
         isNew = isNew,
     )
-
-private fun String.toE164RussianPhone(): String =
-    when {
-        startsWith("+") -> this
-        length == RUSSIAN_PHONE_DIGITS -> "+7$this"
-        else -> this
-    }
-
-private fun String.toLocalRussianPhone(): String =
-    removePrefix("+7").takeIf { it.length == RUSSIAN_PHONE_DIGITS } ?: this

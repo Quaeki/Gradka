@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gradka.domain.ClearSessionUseCase
 import com.example.gradka.domain.GetSessionUseCase
+import com.example.gradka.domain.PhoneCountries
+import com.example.gradka.domain.PhoneCountry
 import com.example.gradka.domain.SaveSessionUseCase
 import com.example.gradka.domain.SendOtpUseCase
 import com.example.gradka.domain.UpdateNameUseCase
 import com.example.gradka.domain.VerifyOtpUseCase
+import com.example.gradka.domain.toE164
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -45,7 +48,8 @@ enum class AuthMode { LOGIN, REGISTER }
  *
  * @property screen Текущий активный шаг процесса аутентификации.
  * @property mode Выбранный режим: вход или регистрация.
- * @property phone Введённый номер телефона (без пробелов и спецсимволов).
+ * @property country Выбранная страна из каталога телефонных кодов.
+ * @property phone Национальная часть номера телефона (только цифры, без кода страны).
  * @property otp Введённый OTP-код.
  * @property name Введённое имя пользователя (на шаге NAME).
  * @property otpError true если введён неверный OTP-код.
@@ -58,6 +62,7 @@ enum class AuthMode { LOGIN, REGISTER }
 data class AuthState(
     val screen: AuthStep = AuthStep.SPLASH,
     val mode: AuthMode = AuthMode.LOGIN,
+    val country: PhoneCountry = PhoneCountries.default,
     val phone: String = "",
     val otp: String = "",
     val name: String = "",
@@ -78,6 +83,8 @@ sealed class AuthEvent {
     object GoToWelcome : AuthEvent()
     /** Выбор режима аутентификации (вход / регистрация). */
     data class SelectMode(val mode: AuthMode) : AuthEvent()
+    /** Выбор страны (телефонного кода) из каталога. */
+    data class SelectCountry(val country: PhoneCountry) : AuthEvent()
     /** Нажатие цифровой клавиши при вводе телефона. */
     data class PhoneDigit(val d: String) : AuthEvent()
     /** Удаление последней цифры телефона. */
@@ -131,9 +138,14 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             val session = getSessionUseCase()
             if (session != null) {
+                // Старые сессии хранили 10 цифр без кода страны, новые — полный E.164.
+                val (country, localPhone) =
+                    if (session.phone.startsWith("+")) splitPhone(session.phone)
+                    else PhoneCountries.default to session.phone
                 _state.update {
                     it.copy(
-                        phone = session.phone,
+                        country = country,
+                        phone = localPhone,
                         name = session.name,
                         isAuthenticated = true,
                     )
@@ -148,8 +160,15 @@ class AuthViewModel @Inject constructor(
             is AuthEvent.SelectMode -> _state.update {
                 it.copy(mode = event.mode, screen = AuthStep.PHONE, phone = "", phoneError = "")
             }
+            is AuthEvent.SelectCountry -> _state.update { s ->
+                s.copy(
+                    country = event.country,
+                    phone = s.phone.take(event.country.localLength),
+                    phoneError = "",
+                )
+            }
             is AuthEvent.PhoneDigit -> _state.update { s ->
-                if (s.phone.length < 10) s.copy(phone = s.phone + event.d, phoneError = "") else s
+                if (s.phone.length < s.country.localLength) s.copy(phone = s.phone + event.d, phoneError = "") else s
             }
             AuthEvent.PhoneDelete -> _state.update { s ->
                 s.copy(phone = s.phone.dropLast(1), phoneError = "")
@@ -182,13 +201,12 @@ class AuthViewModel @Inject constructor(
                 viewModelScope.launch {
                     runCatching { updateNameUseCase(name) }
                         .onSuccess { user ->
-                            saveSessionUseCase(
-                                phone = user.phone.toLocalRussianPhone(),
-                                name = user.name.orEmpty(),
-                            )
+                            val (country, localPhone) = splitPhone(user.phone)
+                            saveSessionUseCase(phone = user.phone, name = user.name.orEmpty())
                             _state.update {
                                 it.copy(
-                                    phone = user.phone.toLocalRussianPhone(),
+                                    country = country,
+                                    phone = localPhone,
                                     name = user.name.orEmpty(),
                                     screen = AuthStep.SUCCESS,
                                 )
@@ -215,20 +233,19 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { updateNameUseCase(trimmed) }
                 .onSuccess { user ->
-                    saveSessionUseCase(
-                        phone = user.phone.toLocalRussianPhone(),
-                        name = user.name.orEmpty(),
-                    )
+                    val (country, localPhone) = splitPhone(user.phone)
+                    saveSessionUseCase(phone = user.phone, name = user.name.orEmpty())
                     _state.update {
                         it.copy(
-                            phone = user.phone.toLocalRussianPhone(),
+                            country = country,
+                            phone = localPhone,
                             name = user.name.orEmpty(),
                         )
                     }
                 }
                 .onFailure {
                     val s = _state.value
-                    saveSessionUseCase(phone = s.phone.toLocalRussianPhone(), name = trimmed)
+                    saveSessionUseCase(phone = s.country.toE164(s.phone), name = trimmed)
                     _state.update { it.copy(name = trimmed) }
                 }
         }
@@ -240,13 +257,13 @@ class AuthViewModel @Inject constructor(
 
     private fun requestOtp() {
         val s = _state.value
-        if (s.phone.length < 10) {
+        if (s.phone.length < s.country.localLength) {
             _state.update { it.copy(phoneError = "Введите полный номер телефона") }
             return
         }
 
         viewModelScope.launch {
-            runCatching { sendOtpUseCase(s.phone.toE164RussianPhone()) }
+            runCatching { sendOtpUseCase(s.country.toE164(s.phone)) }
                 .onSuccess { retryAfterSeconds ->
                     if (s.screen == AuthStep.RECOVERY) {
                         _state.update {
@@ -297,14 +314,15 @@ class AuthViewModel @Inject constructor(
         _state.update { it.copy(otpChecking = true, otpError = false) }
         viewModelScope.launch {
             runCatching {
-                verifyOtpUseCase(authState.phone.toE164RussianPhone(), code)
+                verifyOtpUseCase(authState.country.toE164(authState.phone), code)
             }.onSuccess { result ->
                 val user = result.user
-                val localPhone = user.phone.toLocalRussianPhone()
+                val (country, localPhone) = splitPhone(user.phone)
                 val name = user.name.orEmpty()
                 when {
                     authState.screen == AuthStep.RECOVERY -> _state.update {
                         it.copy(
+                            country = country,
                             phone = localPhone,
                             name = name,
                             otpChecking = false,
@@ -314,6 +332,7 @@ class AuthViewModel @Inject constructor(
                     user.isNew || authState.mode == AuthMode.REGISTER || name.isBlank() -> {
                         _state.update {
                             it.copy(
+                                country = country,
                                 phone = localPhone,
                                 name = name,
                                 otpChecking = false,
@@ -322,9 +341,10 @@ class AuthViewModel @Inject constructor(
                         }
                     }
                     else -> {
-                        saveSessionUseCase(phone = localPhone, name = name)
+                        saveSessionUseCase(phone = user.phone, name = name)
                         _state.update {
                             it.copy(
+                                country = country,
                                 phone = localPhone,
                                 name = name,
                                 otpChecking = false,
@@ -358,12 +378,10 @@ class AuthViewModel @Inject constructor(
     }
 }
 
-private fun String.toE164RussianPhone(): String =
-    when {
-        startsWith("+") -> this
-        length == 10 -> "+7$this"
-        else -> this
-    }
-
-private fun String.toLocalRussianPhone(): String =
-    removePrefix("+7").takeIf { it.length == 10 } ?: this
+/**
+ * Разбирает номер E.164 от сервера на страну каталога и национальную часть.
+ * Для неизвестного кода возвращает страну по умолчанию и все цифры номера.
+ */
+private fun splitPhone(e164Phone: String): Pair<PhoneCountry, String> =
+    PhoneCountries.parse(e164Phone)
+        ?: (PhoneCountries.default to e164Phone.filter { it.isDigit() })

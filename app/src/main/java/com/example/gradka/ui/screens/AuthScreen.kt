@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,21 +42,11 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.gradka.*
+import com.example.gradka.domain.PhoneCountries
+import com.example.gradka.domain.formatLocal
 import com.example.gradka.ui.components.*
 import com.example.gradka.ui.theme.*
 import kotlinx.coroutines.delay
-
-private fun formatPhone(digits: String): String {
-    var s = ""
-    if (digits.isNotEmpty()) s += "(${digits.take(3)}"
-    if (digits.length >= 3) s += ") "
-    if (digits.length > 3) s += digits.substring(3, minOf(6, digits.length))
-    if (digits.length >= 6) s += "-"
-    if (digits.length > 6) s += digits.substring(6, minOf(8, digits.length))
-    if (digits.length >= 8) s += "-"
-    if (digits.length > 8) s += digits.substring(8, minOf(10, digits.length))
-    return s
-}
 
 @Composable
 fun AuthScreen(onAuthDone: () -> Unit) {
@@ -333,13 +325,50 @@ private fun PhoneContent(
                     .background(colors.surface),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text("🇷🇺", fontSize = 20.sp)
-                    Text("+7", style = TextStyle(fontFamily = JetBrainsMonoFontFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = colors.ink))
+                var countryMenuOpen by remember { mutableStateOf(false) }
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                countryMenuOpen = true
+                            }
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(state.country.flag, fontSize = 20.sp)
+                        Text(
+                            state.country.dialCode,
+                            style = TextStyle(fontFamily = JetBrainsMonoFontFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = colors.ink),
+                        )
+                        Text("▾", fontSize = 12.sp, color = colors.ink3)
+                    }
+                    DropdownMenu(
+                        expanded = countryMenuOpen,
+                        onDismissRequest = { countryMenuOpen = false },
+                    ) {
+                        PhoneCountries.all.forEach { country ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(country.flag, fontSize = 18.sp)
+                                        Text(country.displayName, style = TextStyle(fontSize = 14.sp, color = colors.ink))
+                                        Text(
+                                            country.dialCode,
+                                            style = TextStyle(fontFamily = JetBrainsMonoFontFamily, fontSize = 14.sp, color = colors.ink2),
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    countryMenuOpen = false
+                                    onEvent(AuthEvent.SelectCountry(country))
+                                },
+                            )
+                        }
+                    }
                 }
                 Spacer(Modifier.width(1.dp).fillMaxHeight(0.55f).background(colors.line))
                 Box(
@@ -351,10 +380,10 @@ private fun PhoneContent(
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                formatPhone(state.phone),
+                                state.country.formatLocal(state.phone),
                                 style = TextStyle(fontFamily = JetBrainsMonoFontFamily, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = colors.ink),
                             )
-                            if (state.phone.length < 10) {
+                            if (state.phone.length < state.country.localLength) {
                                 Box(
                                     Modifier.padding(start = 2.dp).width(2.dp).height(34.dp)
                                         .clip(RoundedCornerShape(1.dp)).background(colors.ink.copy(alpha = cursorAlpha)),
@@ -379,7 +408,7 @@ private fun PhoneContent(
             onDigit = { onEvent(AuthEvent.PhoneDigit(it)) },
             onDelete = { onEvent(AuthEvent.PhoneDelete) },
             onDone = { onEvent(AuthEvent.PhoneSubmit) },
-            doneEnabled = state.phone.length == 10 && state.phoneError.isEmpty(),
+            doneEnabled = state.phone.length == state.country.localLength && state.phoneError.isEmpty(),
             colors = colors,
         )
     }
@@ -425,7 +454,7 @@ private fun OtpContent(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    "+7 ${formatPhone(state.phone)}",
+                    "${state.country.dialCode} ${state.country.formatLocal(state.phone)}",
                     style = TextStyle(fontFamily = JetBrainsMonoFontFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.ink),
                 )
                 EditIcon(tint = colors.ink3, size = 14.dp)

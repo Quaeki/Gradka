@@ -2,7 +2,8 @@ const crypto = require("crypto");
 const express = require("express");
 const { signHs256Jwt, verifyHs256Jwt } = require("../security/jwt");
 
-const PHONE_PATTERN = /^\+7\d{10}$/;
+// E.164: plus sign and 8-15 digits, first digit non-zero.
+const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 
 function createAuthRoutes({ config, otpService, userStore }) {
   const router = express.Router();
