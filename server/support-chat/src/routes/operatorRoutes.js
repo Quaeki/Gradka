@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const express = require("express");
 const { createAdminAuth } = require("../security/adminAuth");
 const { httpError } = require("../utils/httpErrors");
-const { optionalNumber, optionalString, requireString } = require("../utils/validation");
+const { optionalString, requireString } = require("../utils/validation");
 
 function createOperatorRoutes({ adminToken, store }) {
   const router = express.Router();
@@ -57,7 +57,7 @@ function createOperatorRoutes({ adminToken, store }) {
       textIv: requireString(req.body.textIv, "textIv"),
       sender: "support",
       senderPublicKey: requireString(req.body.senderPublicKey, "senderPublicKey"),
-      createdAtMillis: optionalNumber(req.body.createdAtMillis) || Date.now(),
+      createdAtMillis: Date.now(),
     });
 
     res.status(201).json(message);

@@ -10,6 +10,7 @@ import com.example.gradka.data.SupportDAO.SupportMessageDao
 import com.example.gradka.data.SupportDAO.toDbModel
 import com.example.gradka.data.SupportDAO.toSupportMessage
 import com.example.gradka.domain.SupportChatRepository
+import com.example.gradka.domain.SupportKeyChangedException
 import com.example.gradka.domain.SupportMessage
 import com.example.gradka.domain.SupportMessageAuthor
 import com.example.gradka.domain.SupportMessageCrypto
@@ -104,13 +105,13 @@ class SupportChatRepositoryImpl @Inject constructor(
             supportPublicKey = response.supportPublicKey,
         )
         val cachedConversation = conversationStorage.get()
-        if (
-            cachedConversation != null &&
-            (
-                cachedConversation.conversationId != conversation.conversationId ||
-                    cachedConversation.supportPublicKey != conversation.supportPublicKey
-                )
-        ) {
+        // TOFU: ключ поддержки закрепляется при первом контакте. Изменившийся ключ не
+        // принимается молча — это может быть MITM. Пользователь подтверждает новый ключ
+        // явной очисткой чата (clearMessages сбрасывает закреплённую беседу).
+        if (cachedConversation != null && cachedConversation.supportPublicKey != conversation.supportPublicKey) {
+            throw SupportKeyChangedException()
+        }
+        if (cachedConversation != null && cachedConversation.conversationId != conversation.conversationId) {
             supportMessageDao.clearMessages()
         }
         conversationStorage.save(conversation)
@@ -122,10 +123,9 @@ class SupportChatRepositoryImpl @Inject constructor(
             REMOTE_SENDER_USER -> SupportMessageAuthor.USER
             else -> SupportMessageAuthor.SUPPORT
         }
-        val peerPublicKey = when (author) {
-            SupportMessageAuthor.USER -> conversation.supportPublicKey
-            SupportMessageAuthor.SUPPORT -> senderPublicKey ?: conversation.supportPublicKey
-        }
+        // Ключ отправителя из ответа сервера не используется: доверяем только закреплённому
+        // ключу беседы, иначе сервер мог бы подменить отправителя сообщения.
+        val peerPublicKey = conversation.supportPublicKey
         val text = runCatching {
             supportMessageCrypto.decrypt(
                 encryptedText = encryptedText,

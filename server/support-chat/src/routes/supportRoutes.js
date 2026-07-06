@@ -1,13 +1,13 @@
 const crypto = require("crypto");
 const express = require("express");
-const { requireUser } = require("../security/userAuth");
+const { createUserAuth } = require("../security/userAuth");
 const { httpError } = require("../utils/httpErrors");
-const { optionalNumber, optionalString, requireString } = require("../utils/validation");
+const { optionalString, requireString } = require("../utils/validation");
 
-function createSupportRoutes({ store }) {
+function createSupportRoutes({ jwtSecret, store }) {
   const router = express.Router();
 
-  router.use(requireUser);
+  router.use(createUserAuth(jwtSecret));
 
   router.post("/conversation", (req, res, next) => {
     const conversation = store.getOrCreateConversation({
@@ -54,7 +54,8 @@ function createSupportRoutes({ store }) {
       textIv: requireString(req.body.textIv, "textIv"),
       sender: "user",
       senderPublicKey: requireString(req.body.senderPublicKey, "senderPublicKey"),
-      createdAtMillis: optionalNumber(req.body.createdAtMillis) || Date.now(),
+      // Timestamps are assigned server-side so clients cannot spoof message ordering.
+      createdAtMillis: Date.now(),
     });
 
     res.status(201).json(message);

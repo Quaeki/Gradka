@@ -3,6 +3,10 @@ package com.example.gradka.domain
 import java.util.UUID
 import javax.inject.Inject
 
+/**
+ * Use Case для отправки сообщения в чат поддержки.
+ * Сообщения шифруются E2EE перед сохранением и передачей.
+ */
 class SendSupportMessageUseCase @Inject constructor(
     private val repository: SupportChatRepository,
 ) {

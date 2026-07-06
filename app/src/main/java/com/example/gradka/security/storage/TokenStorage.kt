@@ -15,6 +15,12 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Secure storage for authentication tokens.
+ *
+ * Access and refresh tokens are encrypted with AES-GCM using a key stored in
+ * Android Keystore before they are written to SharedPreferences.
+ */
 @Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext context: Context,
@@ -24,15 +30,27 @@ class TokenStorage @Inject constructor(
         Context.MODE_PRIVATE,
     )
 
+    /**
+     * Encrypts and stores the current access and refresh tokens.
+     */
     fun save(accessToken: String, refreshToken: String) {
         saveEncrypted(ACCESS_TOKEN, accessToken)
         saveEncrypted(REFRESH_TOKEN, refreshToken)
     }
 
+    /**
+     * Returns the decrypted access token, or null if it is missing or cannot be decrypted.
+     */
     fun getAccessToken(): String? = getDecrypted(ACCESS_TOKEN)
 
+    /**
+     * Returns the decrypted refresh token, or null if it is missing or cannot be decrypted.
+     */
     fun getRefreshToken(): String? = getDecrypted(REFRESH_TOKEN)
 
+    /**
+     * Removes all locally stored authentication tokens.
+     */
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -75,6 +93,10 @@ class TokenStorage @Inject constructor(
             .apply()
     }
 
+    // Без синхронизации два первых одновременных вызова могут сгенерировать ключ дважды:
+    // второй generateKey с тем же alias перезапишет первый, и уже зашифрованные им данные
+    // станут нечитаемыми.
+    @Synchronized
     private fun getOrCreateSecretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply {
             load(null)

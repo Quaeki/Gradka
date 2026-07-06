@@ -1,9 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 
+const DEFAULT_MAX_MESSAGES_PER_CONVERSATION = 500;
+
 class ChatStore {
-  constructor(dataFile) {
+  constructor(dataFile, options = {}) {
     this.dataFile = dataFile;
+    this.maxMessagesPerConversation =
+      options.maxMessagesPerConversation || DEFAULT_MAX_MESSAGES_PER_CONVERSATION;
     this.state = this.load();
   }
 
@@ -89,7 +93,15 @@ class ChatStore {
   }
 
   addMessage(conversation, message) {
+    const existing = conversation.messages.find((item) => item.id === message.id);
+    if (existing) {
+      return existing;
+    }
+
     conversation.messages.push(message);
+    if (conversation.messages.length > this.maxMessagesPerConversation) {
+      conversation.messages = conversation.messages.slice(-this.maxMessagesPerConversation);
+    }
     conversation.updatedAtMillis = Date.now();
     this.save();
     return message;
@@ -110,7 +122,10 @@ class ChatStore {
 
   save() {
     fs.mkdirSync(path.dirname(this.dataFile), { recursive: true });
-    fs.writeFileSync(this.dataFile, JSON.stringify(this.state, null, 2));
+    // Write to a temp file and rename so a crash mid-write never corrupts the data file.
+    const tempFile = `${this.dataFile}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(this.state, null, 2));
+    fs.renameSync(tempFile, this.dataFile);
   }
 }
 

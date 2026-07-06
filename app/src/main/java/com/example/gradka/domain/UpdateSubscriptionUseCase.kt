@@ -3,6 +3,7 @@ package com.example.gradka.domain
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
+/** Use Case для обновления параметров подписки (количество товара, периодичность доставки). */
 class UpdateSubscriptionUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(
         id: String,

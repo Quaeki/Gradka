@@ -5,6 +5,10 @@ import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
+/**
+ * Use Case для добавления нового способа оплаты (банковской карты).
+ * Генерирует UUID и проставляет временную метку создания.
+ */
 class AddPaymentMethodUseCase @Inject constructor(
     private val repository: GradkaRepository,
 ) {

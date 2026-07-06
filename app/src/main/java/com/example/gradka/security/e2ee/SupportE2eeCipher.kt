@@ -22,7 +22,15 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
+/**
+ * Android implementation of support chat E2EE.
+ *
+ * The class creates and stores an elliptic-curve identity key pair on the device,
+ * protects the private key with [SecureTextCipher], derives a per-conversation
+ * AES-GCM key through ECDH + HKDF, and encrypts/decrypts chat messages.
+ */
 @Singleton
 class SupportE2eeCipher @Inject constructor(
     @ApplicationContext context: Context,
@@ -34,8 +42,14 @@ class SupportE2eeCipher @Inject constructor(
     )
     private val secureRandom = SecureRandom()
 
+    /**
+     * Returns the Base64 encoded public part of the device support-chat identity.
+     */
     override fun getPublicKey(): String = getOrCreateIdentity().publicKey
 
+    /**
+     * Encrypts a support-chat message for the provided peer public key.
+     */
     override fun encrypt(plainText: String, peerPublicKey: String, conversationId: String): E2eeEncryptedText {
         val iv = ByteArray(GCM_IV_BYTES).also(secureRandom::nextBytes)
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -52,6 +66,9 @@ class SupportE2eeCipher @Inject constructor(
         )
     }
 
+    /**
+     * Decrypts a support-chat message using the current device private key.
+     */
     override fun decrypt(encryptedText: String, iv: String, peerPublicKey: String, conversationId: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(
@@ -78,6 +95,9 @@ class SupportE2eeCipher @Inject constructor(
         )
     }
 
+    // Синхронизация защищает от гонки при первом обращении: параллельная генерация двух
+    // пар ключей оставила бы в prefs приватный ключ, не соответствующий уже отданному публичному.
+    @Synchronized
     private fun getOrCreateIdentity(): SupportE2eeIdentity {
         val publicKey = prefs.getString(PUBLIC_KEY, null)
         val encryptedPrivateKey = prefs.getString(PRIVATE_KEY_VALUE, null)
@@ -91,11 +111,11 @@ class SupportE2eeCipher @Inject constructor(
         val encrypted = secureTextCipher.encrypt(encodedPrivateKey)
         val encodedPublicKey = keyPair.public.encoded.encodeBase64()
 
-        prefs.edit()
-            .putString(PUBLIC_KEY, encodedPublicKey)
-            .putString(PRIVATE_KEY_VALUE, encrypted.value)
-            .putString(PRIVATE_KEY_IV, encrypted.iv)
-            .apply()
+        prefs.edit {
+            putString(PUBLIC_KEY, encodedPublicKey)
+                .putString(PRIVATE_KEY_VALUE, encrypted.value)
+                .putString(PRIVATE_KEY_IV, encrypted.iv)
+        }
 
         return SupportE2eeIdentity(publicKey = encodedPublicKey)
     }

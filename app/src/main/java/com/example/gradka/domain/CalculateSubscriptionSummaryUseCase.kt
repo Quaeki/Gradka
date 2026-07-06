@@ -2,6 +2,13 @@ package com.example.gradka.domain
 
 import javax.inject.Inject
 
+/**
+ * Сводная информация по подпискам пользователя.
+ *
+ * @property activeCount Количество активных подписок.
+ * @property monthlyTotal Суммарные расходы на подписки в месяц (в рублях).
+ * @property monthlySavings Экономия в месяц по сравнению с разовыми покупками (в рублях).
+ */
 data class SubscriptionSummary(
     val activeCount: Int = 0,
     val monthlyTotal: Int = 0,

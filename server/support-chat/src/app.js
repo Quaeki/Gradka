@@ -2,14 +2,19 @@ const express = require("express");
 const path = require("path");
 const { createOperatorRoutes } = require("./routes/operatorRoutes");
 const { createSupportRoutes } = require("./routes/supportRoutes");
+const { createRateLimit } = require("./security/rateLimit");
 const { ChatStore } = require("./storage/chatStore");
 
 function createApp(config) {
   const app = express();
-  const store = new ChatStore(config.dataFile);
+  const store = new ChatStore(config.dataFile, {
+    maxMessagesPerConversation: config.maxMessagesPerConversation,
+  });
 
+  app.set("trust proxy", true);
   app.use(express.json({ limit: "256kb" }));
-  app.use(cors);
+  app.use(createCors(config.allowedOrigins));
+  app.use(createRateLimit(config.rateLimit));
 
   app.get(["/health", "/support/health"], (_req, res) => {
     res.json({ ok: true, service: "gradka-support-chat" });
@@ -22,7 +27,7 @@ function createApp(config) {
       store,
     }),
   );
-  app.use("/support/chat", createSupportRoutes({ store }));
+  app.use("/support/chat", createSupportRoutes({ jwtSecret: config.jwtSecret, store }));
 
   app.use("/operator", express.static(config.operatorPublicDir));
   app.get("/operator/", (_req, res) => {
@@ -34,15 +39,21 @@ function createApp(config) {
   return app;
 }
 
-function cors(req, res, next) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Support-Admin-Token");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  if (req.method === "OPTIONS") {
-    res.sendStatus(204);
-    return;
-  }
-  next();
+function createCors(allowedOrigins) {
+  return function cors(req, res, next) {
+    const origin = req.get("origin");
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Support-Admin-Token");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    }
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  };
 }
 
 function errorHandler(err, _req, res, _next) {

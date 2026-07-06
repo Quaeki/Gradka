@@ -6,4 +6,5 @@ plugins {
     id("com.google.devtools.ksp") version "2.0.21-1.0.28" apply false
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.hilt.android) apply false
+    id("org.jetbrains.dokka") version "2.2.0" apply false
 }

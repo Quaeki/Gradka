@@ -12,8 +12,19 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Small AES-GCM helper for encrypting local sensitive text values.
+ *
+ * The symmetric key is generated and stored in Android Keystore. The encrypted
+ * value and IV are returned separately so callers can persist them in Room or
+ * SharedPreferences without exposing plaintext.
+ */
 @Singleton
 class SecureTextCipher @Inject constructor() {
+
+    /**
+     * Encrypts a UTF-8 string and returns Base64 encoded ciphertext and IV.
+     */
     fun encrypt(value: String): EncryptedText {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
@@ -25,6 +36,9 @@ class SecureTextCipher @Inject constructor() {
         )
     }
 
+    /**
+     * Decrypts a value previously produced by [encrypt].
+     */
     fun decrypt(value: String, iv: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(
@@ -36,6 +50,10 @@ class SecureTextCipher @Inject constructor() {
         return String(cipher.doFinal(value.decodeBase64()), StandardCharsets.UTF_8)
     }
 
+    // Без синхронизации два первых одновременных вызова могут сгенерировать ключ дважды:
+    // второй generateKey с тем же alias перезапишет первый, и уже зашифрованные им данные
+    // станут нечитаемыми.
+    @Synchronized
     private fun getOrCreateSecretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply {
             load(null)
@@ -78,6 +96,12 @@ class SecureTextCipher @Inject constructor() {
     }
 }
 
+/**
+ * Result of local AES-GCM text encryption.
+ *
+ * @property value Base64 encoded ciphertext with authentication tag.
+ * @property iv Base64 encoded AES-GCM initialization vector.
+ */
 data class EncryptedText(
     val value: String,
     val iv: String,

@@ -2,6 +2,14 @@ package com.example.gradka.domain
 
 import javax.inject.Inject
 
+/**
+ * Итоговые суммы по корзине покупок.
+ *
+ * @property count Общее количество единиц товара в корзине.
+ * @property subtotal Стоимость товаров без доставки (в рублях).
+ * @property delivery Стоимость доставки (0 при заказе от 1500 руб).
+ * @property total Итоговая сумма к оплате (в рублях).
+ */
 data class CartSummary(
     val count: Int = 0,
     val subtotal: Int = 0,

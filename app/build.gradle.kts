@@ -7,6 +7,7 @@ plugins {
     id("com.google.devtools.ksp")
     alias(libs.plugins.google.services)
     alias(libs.plugins.hilt.android)
+    id("org.jetbrains.dokka")
 }
 
 val localPropertiesFile = rootProject.file("local.properties")
@@ -34,7 +35,7 @@ android {
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"${localProperties["API_BASE_URL"] ?: "http://193.233.247.13/"}\""
+            "\"${localProperties["API_BASE_URL"] ?: ""}\""
         )
     }
 

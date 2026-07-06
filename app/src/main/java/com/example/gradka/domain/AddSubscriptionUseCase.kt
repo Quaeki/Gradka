@@ -4,6 +4,10 @@ import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import javax.inject.Inject
 
+/**
+ * Use Case для добавления подписки на регулярную доставку товара.
+ * Проверяет, что подписки на данный товар ещё нет, и рассчитывает дату первой доставки.
+ */
 class AddSubscriptionUseCase @Inject constructor(private val repository: GradkaRepository) {
     suspend operator fun invoke(productId: String, qty: Int, frequencyDays: Int) {
         val current = repository.getSubscriptions().first().toList()

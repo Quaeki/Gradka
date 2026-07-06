@@ -1,0 +1,59 @@
+services:
+  auth:
+    build:
+      context: ./server/auth
+    container_name: gradka-auth
+    restart: unless-stopped
+    ports:
+      # Loopback only for local debugging: external traffic goes through Caddy.
+      - "127.0.0.1:3002:3002"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3002
+      AUTH_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
+      SMS_RU_API_ID: ${SMS_RU_API_ID:-}
+      AUTH_DATA_DIR: /app/data
+    volumes:
+      - auth_data:/app/data
+
+  support-chat:
+    build:
+      context: ./server/support-chat
+    container_name: gradka-support-chat
+    restart: unless-stopped
+    ports:
+      # Loopback only for local debugging: external traffic goes through Caddy.
+      - "127.0.0.1:3001:3001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      SUPPORT_ADMIN_TOKEN: ${SUPPORT_ADMIN_TOKEN:?SUPPORT_ADMIN_TOKEN is required}
+      SUPPORT_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
+      SUPPORT_CHAT_DATA_DIR: /app/data
+    volumes:
+      - support_chat_data:/app/data
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: gradka-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Without DOMAIN Caddy serves plain HTTP on :80 (debug builds only).
+      # Set DOMAIN=your-domain.ru in .env to enable automatic HTTPS via Let's Encrypt.
+      DOMAIN: ${DOMAIN:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - auth
+      - support-chat
+
+volumes:
+  auth_data:
+  support_chat_data:
+  caddy_data:
+  caddy_config:

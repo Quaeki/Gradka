@@ -18,9 +18,43 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class AuthStep { SPLASH, WELCOME, PHONE, OTP, NAME, SUCCESS, RECOVERY }
+/** Шаги (экраны) процесса аутентификации. */
+enum class AuthStep {
+    /** Заставка при запуске приложения. */
+    SPLASH,
+    /** Приветственный экран с выбором входа или регистрации. */
+    WELCOME,
+    /** Ввод номера телефона. */
+    PHONE,
+    /** Ввод OTP-кода из SMS. */
+    OTP,
+    /** Ввод имени (только при первой регистрации). */
+    NAME,
+    /** Успешная аутентификация. */
+    SUCCESS,
+    /** Экран восстановления доступа. */
+    RECOVERY
+}
+
+/** Режим аутентификации: вход в существующий аккаунт или регистрация. */
 enum class AuthMode { LOGIN, REGISTER }
 
+/**
+ * Состояние экрана аутентификации.
+ * Используется в MVI-паттерне: единственный источник истины для [AuthViewModel].
+ *
+ * @property screen Текущий активный шаг процесса аутентификации.
+ * @property mode Выбранный режим: вход или регистрация.
+ * @property phone Введённый номер телефона (без пробелов и спецсимволов).
+ * @property otp Введённый OTP-код.
+ * @property name Введённое имя пользователя (на шаге NAME).
+ * @property otpError true если введён неверный OTP-код.
+ * @property otpChecking true пока идёт проверка кода на сервере.
+ * @property otpCountdown Оставшееся время (в секундах) до повторной отправки SMS.
+ * @property phoneError Сообщение об ошибке при вводе телефона (пустая строка = нет ошибки).
+ * @property recoveryStep Текущий шаг в процессе восстановления доступа.
+ * @property isAuthenticated true если пользователь успешно авторизован.
+ */
 data class AuthState(
     val screen: AuthStep = AuthStep.SPLASH,
     val mode: AuthMode = AuthMode.LOGIN,
@@ -35,23 +69,49 @@ data class AuthState(
     val isAuthenticated: Boolean = false,
 )
 
+/**
+ * События (интенты), которые пользователь может инициировать на экране аутентификации.
+ * Реализуют паттерн MVI (Model-View-Intent).
+ */
 sealed class AuthEvent {
+    /** Переход к приветственному экрану. */
     object GoToWelcome : AuthEvent()
+    /** Выбор режима аутентификации (вход / регистрация). */
     data class SelectMode(val mode: AuthMode) : AuthEvent()
+    /** Нажатие цифровой клавиши при вводе телефона. */
     data class PhoneDigit(val d: String) : AuthEvent()
+    /** Удаление последней цифры телефона. */
     object PhoneDelete : AuthEvent()
+    /** Подтверждение введённого номера телефона. */
     object PhoneSubmit : AuthEvent()
+    /** Ввод цифры OTP-кода. */
     data class OtpDigit(val d: String) : AuthEvent()
+    /** Удаление последней цифры OTP-кода. */
     object OtpDelete : AuthEvent()
+    /** Повторная отправка SMS с кодом. */
     object OtpResend : AuthEvent()
+    /** Возврат к редактированию номера телефона. */
     object EditPhone : AuthEvent()
+    /** Изменение введённого имени пользователя. */
     data class NameInput(val name: String) : AuthEvent()
+    /** Подтверждение имени и завершение регистрации. */
     object NameSubmit : AuthEvent()
+    /** Переход к экрану восстановления доступа. */
     object GoToRecovery : AuthEvent()
+    /** Возврат на предыдущий экран. */
     object Back : AuthEvent()
+    /** Выход из аккаунта (очистка сессии). */
     object Logout : AuthEvent()
 }
 
+/**
+ * ViewModel экрана аутентификации.
+ *
+ * Управляет процессом входа и регистрации по номеру телефона с OTP-подтверждением.
+ * Использует MVI-паттерн: все изменения состояния происходят через обработчик событий.
+ *
+ * Внедряется через Hilt; зависимости — Use Cases из доменного слоя.
+ */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val getSessionUseCase: GetSessionUseCase,
