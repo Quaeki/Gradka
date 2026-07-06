@@ -19,8 +19,13 @@ const config = {
     windowMillis: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 60_000),
     maxRequests: Number(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || 30),
   },
-  // Optional sms.ru integration. When the api id is empty the service runs in dev mode
-  // and prints OTP codes to the server log instead of sending SMS.
+  // Optional login bot (@BotFather) for delivering OTP codes via Telegram.
+  // Must be a separate bot from the support-relay one: Telegram allows only
+  // one getUpdates consumer per bot token.
+  telegramBotToken: process.env.AUTH_TELEGRAM_BOT_TOKEN || "",
+  // Optional sms.ru integration, used when the phone is not linked to Telegram.
+  // With neither configured the service runs in dev mode and prints OTP codes
+  // to the server log.
   smsRuApiId: process.env.SMS_RU_API_ID || "",
   dataFile: path.join(dataDir, "auth.json"),
 };

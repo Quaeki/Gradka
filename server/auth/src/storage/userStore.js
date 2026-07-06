@@ -67,15 +67,41 @@ class UserStore {
     return this.findById(entry.userId);
   }
 
+  // Telegram login-bot bindings: phone -> chat id for OTP delivery.
+  linkTelegram(phone, chatId) {
+    this.state.telegramContacts[phone] = chatId;
+    this.save();
+  }
+
+  getTelegramChatId(phone) {
+    return this.state.telegramContacts[phone] || null;
+  }
+
+  getTelegramUpdateOffset() {
+    return this.state.telegramUpdateOffset;
+  }
+
+  setTelegramUpdateOffset(offset) {
+    this.state.telegramUpdateOffset = offset;
+    this.save();
+  }
+
   load() {
     try {
       const parsed = JSON.parse(fs.readFileSync(this.dataFile, "utf8"));
       return {
         users: Array.isArray(parsed.users) ? parsed.users : [],
         refreshTokens: Array.isArray(parsed.refreshTokens) ? parsed.refreshTokens : [],
+        telegramContacts:
+          parsed.telegramContacts && typeof parsed.telegramContacts === "object"
+            ? parsed.telegramContacts
+            : {},
+        telegramUpdateOffset: Number.isFinite(parsed.telegramUpdateOffset)
+          ? parsed.telegramUpdateOffset
+          : 0,
       };
     } catch (_error) {
-      return { users: [], refreshTokens: [] };
+      return { users: [], refreshTokens: [], telegramContacts: {}, telegramUpdateOffset: 0 };
     }
   }
 

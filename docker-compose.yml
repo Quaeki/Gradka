@@ -11,6 +11,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3002
       AUTH_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
+      AUTH_TELEGRAM_BOT_TOKEN: ${AUTH_TELEGRAM_BOT_TOKEN:-}
       SMS_RU_API_ID: ${SMS_RU_API_ID:-}
       AUTH_DATA_DIR: /app/data
     volumes:

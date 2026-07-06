@@ -1,20 +1,28 @@
 const express = require("express");
 const { createAuthRoutes } = require("./routes/authRoutes");
 const { createRateLimit } = require("./security/rateLimit");
+const { createCodeSender } = require("./otp/codeSender");
 const { OtpService } = require("./otp/otpService");
-const { createSmsSender } = require("./otp/smsSender");
 const { UserStore } = require("./storage/userStore");
+const { AuthTelegramBot, startContactPolling } = require("./telegram/telegramBot");
 
-function createApp(config) {
+function createApp(config, overrides = {}) {
   if (!config.jwtSecret) {
     throw new Error("AUTH_JWT_SECRET (or SUPPORT_JWT_SECRET) is required");
   }
 
   const app = express();
   const userStore = new UserStore(config.dataFile);
+  const telegramBot =
+    overrides.telegramBot ||
+    (config.telegramBotToken ? new AuthTelegramBot({ botToken: config.telegramBotToken }) : null);
   const otpService = new OtpService({
     ...config.otp,
-    sendSms: createSmsSender(config.smsRuApiId),
+    sendSms: createCodeSender({
+      userStore,
+      telegramBot,
+      smsRuApiId: config.smsRuApiId,
+    }),
   });
 
   app.set("trust proxy", true);
@@ -31,6 +39,13 @@ function createApp(config) {
     const status = err.statusCode || 500;
     res.status(status).json({ error: err.message || "INTERNAL_ERROR" });
   });
+
+  const stopPolling =
+    telegramBot && !overrides.skipPolling
+      ? startContactPolling({ bot: telegramBot, userStore })
+      : () => {};
+  app.locals.stopPolling = stopPolling;
+  app.locals.userStore = userStore;
 
   return app;
 }
