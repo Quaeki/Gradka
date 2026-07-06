@@ -36,7 +36,30 @@
       "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.Map\")",
       "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.MapObjectCollection\")",
       "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.PlacemarkMapObject\")",
-      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.CameraPosition\")"
+      "Bash(javap -cp /tmp/yandex-maps/classes.jar \"com.yandex.mapkit.map.CameraPosition\")",
+      "Bash(node --check src/app.js)",
+      "Bash(node --check src/config.js)",
+      "Bash(node --check src/security/userAuth.js)",
+      "Bash(node --check src/security/adminAuth.js)",
+      "Bash(node --check src/security/rateLimit.js)",
+      "Bash(npm install *)",
+      "Bash(sed -i '' 's|require\\(\"./src/app\"\\)|require\\(\"/Users/kaiser/AndroidStudioProjects/Gradka/server/support-chat/src/app\"\\)|; s|require\\(\"./src/config\"\\)|require\\(\"/Users/kaiser/AndroidStudioProjects/Gradka/server/support-chat/src/config\"\\)|' /private/tmp/claude-501/-Users-kaiser-AndroidStudioProjects-Gradka/9e84de66-4a1b-4163-bb98-b17ac233699e/scratchpad/smoke.js)",
+      "Bash(node /private/tmp/claude-501/-Users-kaiser-AndroidStudioProjects-Gradka/9e84de66-4a1b-4163-bb98-b17ac233699e/scratchpad/smoke.js)",
+      "Bash(./gradlew :app:compileDebugKotlin -q)",
+      "Bash(./gradlew :app:testDebugUnitTest -q)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git check-ignore *)",
+      "Bash(SUPPORT_ADMIN_TOKEN=x SUPPORT_JWT_SECRET=y docker compose config -q)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(git credential *)",
+      "Bash(git rm *)",
+      "Bash(echo \"COMPILE_EXIT=$?\")",
+      "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z docker compose config -q)",
+      "Bash(echo \"TESTS_EXIT=$?\")"
     ]
   }
 }
