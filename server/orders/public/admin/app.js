@@ -9,7 +9,7 @@ const STATUS_LABELS = {
 const els = {
   loginPanel: document.getElementById("loginPanel"),
   ordersPanel: document.getElementById("ordersPanel"),
-  tokenInput: document.getElementById("tokenInput"),
+  passwordInput: document.getElementById("passwordInput"),
   loginBtn: document.getElementById("loginBtn"),
   logoutBtn: document.getElementById("logoutBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
@@ -19,23 +19,20 @@ const els = {
   error: document.getElementById("error"),
 };
 
-// sessionStorage: токен живёт до закрытия вкладки и не остаётся в браузере навсегда.
-let adminToken = sessionStorage.getItem("gradka_orders_admin_token") || "";
 let searchTimer = null;
 let refreshTimer = null;
 
+// Сессия хранится в HttpOnly-cookie, которую браузер шлёт сам.
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Orders-Admin-Token": adminToken,
-      ...(options.headers || {}),
-    },
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(body?.error || `HTTP ${response.status}`);
+    const error = new Error(body?.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return body;
 }
@@ -120,52 +117,68 @@ function formatDate(millis) {
 function showOrders() {
   els.loginPanel.style.display = "none";
   els.ordersPanel.style.display = "block";
-  loadOrders().catch(showLogin);
+  loadOrders().catch(handleApiError);
   clearInterval(refreshTimer);
   refreshTimer = setInterval(() => loadOrders().catch(() => {}), 15000);
 }
 
-function showLogin(error) {
+function showLogin(message) {
   clearInterval(refreshTimer);
   els.ordersPanel.style.display = "none";
   els.loginPanel.style.display = "block";
-  if (error) {
-    els.error.textContent = error.message === "UNAUTHORIZED" ? "Неверный токен" : `Ошибка: ${error.message}`;
+  if (message) {
+    els.error.textContent = message;
     els.error.style.display = "block";
+  } else {
+    els.error.style.display = "none";
+  }
+}
+
+function handleApiError(error) {
+  if (error.status === 401) {
+    showLogin();
+  } else {
+    showLogin(`Ошибка: ${error.message}`);
   }
 }
 
 els.loginBtn.addEventListener("click", async () => {
-  adminToken = els.tokenInput.value.trim();
   els.error.style.display = "none";
   try {
-    await api("/orders/all?q=");
-    sessionStorage.setItem("gradka_orders_admin_token", adminToken);
+    await api("/orders/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password: els.passwordInput.value }),
+    });
+    els.passwordInput.value = "";
     showOrders();
   } catch (error) {
-    showLogin(error);
+    const message = {
+      WRONG_PASSWORD: "Неверный пароль",
+      TOO_MANY_ATTEMPTS: "Слишком много попыток. Подождите минуту",
+    }[error.message] || `Ошибка: ${error.message}`;
+    showLogin(message);
   }
 });
-els.tokenInput.addEventListener("keydown", (event) => {
+els.passwordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") els.loginBtn.click();
 });
 
-els.logoutBtn.addEventListener("click", () => {
-  adminToken = "";
-  sessionStorage.removeItem("gradka_orders_admin_token");
-  els.tokenInput.value = "";
+els.logoutBtn.addEventListener("click", async () => {
+  await api("/orders/admin/logout", { method: "POST" }).catch(() => {});
   showLogin();
 });
 
-els.refreshBtn.addEventListener("click", () => loadOrders().catch(showLogin));
+els.refreshBtn.addEventListener("click", () => loadOrders().catch(handleApiError));
 
 els.searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => loadOrders().catch(showLogin), 300);
+  searchTimer = setTimeout(() => loadOrders().catch(handleApiError), 300);
 });
 
-if (adminToken) {
-  showOrders();
-} else {
-  showLogin();
-}
+// Если cookie-сессия ещё жива — сразу показываем заказы, иначе форму входа.
+api("/orders/all?q=")
+  .then((orders) => {
+    showOrders();
+    renderOrders(orders);
+  })
+  .catch(() => showLogin());

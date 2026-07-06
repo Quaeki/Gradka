@@ -5,8 +5,9 @@ const config = {
   jwtSecret: process.env.SUPPORT_JWT_SECRET || "",
   // PostgreSQL connection string, e.g. postgres://gradka:secret@postgres:5432/gradka
   databaseUrl: process.env.DATABASE_URL || "",
-  // Token for operator endpoints (order status updates).
-  adminToken: process.env.ORDERS_ADMIN_TOKEN || "",
+  // Password for the admin panel and operator endpoints
+  // (ORDERS_ADMIN_TOKEN is accepted as a legacy alias).
+  adminPassword: process.env.ORDERS_ADMIN_PASSWORD || process.env.ORDERS_ADMIN_TOKEN || "",
   rateLimit: {
     windowMillis: Number(process.env.ORDERS_RATE_LIMIT_WINDOW_MS || 60_000),
     maxRequests: Number(process.env.ORDERS_RATE_LIMIT_MAX_REQUESTS || 120),

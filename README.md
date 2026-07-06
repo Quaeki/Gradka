@@ -148,15 +148,15 @@ Admin panel with an orders table, search (by number, phone, address, status), an
 http://<server>/orders/admin/
 ```
 
-Log in with `ORDERS_ADMIN_TOKEN`. The token is kept in sessionStorage and sent as the `X-Orders-Admin-Token` header with every API call. The same operator API is available via curl:
+Log in with the `ORDERS_ADMIN_PASSWORD` value. The panel stores the session in an HttpOnly cookie valid for 24 hours; login attempts are rate limited (5 per minute per IP). The same operator API is available via curl with a password header:
 
 ```bash
 # list latest orders, optionally filtered
-curl "http://127.0.0.1/orders/all?q=+998" -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN"
+curl "http://127.0.0.1/orders/all?q=+998" -H "X-Orders-Admin-Password: $ORDERS_ADMIN_PASSWORD"
 
 # update status by order number (created / confirmed / delivering / delivered / cancelled)
 curl -X PATCH http://127.0.0.1/orders/10001/status \
-  -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN" \
+  -H "X-Orders-Admin-Password: $ORDERS_ADMIN_PASSWORD" \
   -H 'content-type: application/json' -d '{"status":"delivering"}'
 ```
 
@@ -176,7 +176,7 @@ openssl rand -hex 32   # generate the value for SUPPORT_JWT_SECRET
 ```env
 SUPPORT_JWT_SECRET=<random shared JWT secret>
 POSTGRES_PASSWORD=<random database password>
-ORDERS_ADMIN_TOKEN=<random token for order management>
+ORDERS_ADMIN_PASSWORD=<strong password for the orders admin panel>
 TELEGRAM_BOT_TOKEN=<bot token from @BotFather>
 TELEGRAM_CHAT_ID=<your chat id from @userinfobot>
 #DOMAIN=your-domain.ru

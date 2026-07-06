@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const express = require("express");
+const { createAdminAuth } = require("../security/adminAuth");
 const { createUserAuth } = require("../security/userAuth");
 
 const ORDER_STATUSES = ["created", "confirmed", "delivering", "delivered", "cancelled"];
@@ -9,6 +10,10 @@ const MAX_ADDRESS_LENGTH = 300;
 
 function createOrderRoutes({ config, pool }) {
   const router = express.Router();
+  const adminAuth = createAdminAuth(config.adminPassword);
+
+  router.post("/admin/login", adminAuth.login);
+  router.post("/admin/logout", adminAuth.logout);
 
   router.get("/", createUserAuth(config.jwtSecret), async (req, res, next) => {
     try {
@@ -75,8 +80,8 @@ function createOrderRoutes({ config, pool }) {
   });
 
   // Operator endpoint: update order status.
-  // curl -X PATCH .../orders/<id>/status -H 'X-Orders-Admin-Token: ...' -d '{"status":"delivering"}'
-  router.patch("/:id/status", requireAdmin(config.adminToken), async (req, res, next) => {
+  // curl -X PATCH .../orders/<id>/status -H 'X-Orders-Admin-Password: ...' -d '{"status":"delivering"}'
+  router.patch("/:id/status", adminAuth.requireAdmin, async (req, res, next) => {
     try {
       const status = req.body.status;
       if (!ORDER_STATUSES.includes(status)) {
@@ -99,7 +104,7 @@ function createOrderRoutes({ config, pool }) {
 
   // Operator endpoint: list latest orders across all users.
   // Optional ?q= searches by order number, phone, address, and status.
-  router.get("/all", requireAdmin(config.adminToken), async (req, res, next) => {
+  router.get("/all", adminAuth.requireAdmin, async (req, res, next) => {
     try {
       const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
       const result = await pool.query(
@@ -189,26 +194,6 @@ function parseItems(rawItems) {
     value.push({ productId, qty });
   }
   return { value };
-}
-
-function requireAdmin(adminToken) {
-  return function requireAdminToken(req, res, next) {
-    if (!adminToken) {
-      res.status(500).json({ error: "ORDERS_ADMIN_TOKEN_IS_MISSING" });
-      return;
-    }
-    if (!timingSafeEqualStrings(req.get("x-orders-admin-token") || "", adminToken)) {
-      res.status(401).json({ error: "UNAUTHORIZED" });
-      return;
-    }
-    next();
-  };
-}
-
-function timingSafeEqualStrings(left, right) {
-  const leftHash = crypto.createHash("sha256").update(left).digest();
-  const rightHash = crypto.createHash("sha256").update(right).digest();
-  return crypto.timingSafeEqual(leftHash, rightHash);
 }
 
 module.exports = { createOrderRoutes };

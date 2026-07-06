@@ -28,7 +28,7 @@ services:
       PORT: 3003
       SUPPORT_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
       DATABASE_URL: postgres://gradka:${POSTGRES_PASSWORD}@postgres:5432/gradka
-      ORDERS_ADMIN_TOKEN: ${ORDERS_ADMIN_TOKEN:?ORDERS_ADMIN_TOKEN is required}
+      ORDERS_ADMIN_PASSWORD: ${ORDERS_ADMIN_PASSWORD:?ORDERS_ADMIN_PASSWORD is required}
     depends_on:
       postgres:
         condition: service_healthy
