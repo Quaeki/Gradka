@@ -73,7 +73,14 @@
       "Bash(node /private/tmp/claude-501/-Users-kaiser-AndroidStudioProjects-Gradka/9e84de66-4a1b-4163-bb98-b17ac233699e/scratchpad/smoke-orders.js)",
       "Bash(docker stop *)",
       "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z POSTGRES_PASSWORD=p ORDERS_ADMIN_TOKEN=a docker compose config -q)",
-      "Bash(echo \"TESTS=$?\")"
+      "Bash(echo \"TESTS=$?\")",
+      "Bash(curl -sS -m 8 http://193.233.232.214/orders/health)",
+      "Bash(adb devices *)",
+      "Bash(curl -sS -m 8 -i http://193.233.232.214/orders/health)",
+      "Bash(adb logcat *)",
+      "Bash(adb emu *)",
+      "Bash(adb shell *)",
+      "Bash(awk '{printf \"%-6s %5s%% CPU  %5.0f MB  %s\\\\n\", $2, $3, $6/1024, $11}')"
     ]
   }
 }
