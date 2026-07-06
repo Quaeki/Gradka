@@ -60,7 +60,11 @@
       "Bash(echo \"COMPILE_EXIT=$?\")",
       "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z docker compose config -q)",
       "Bash(echo \"TESTS_EXIT=$?\")",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(curl -sS -m 10 http://193.233.232.214/health)",
+      "Bash(curl -sS -m 10 -i -X POST http://193.233.232.214/auth/send-code -H 'content-type: application/json' -d '{\"phone\":\"+998901234567\"}')",
+      "Bash(./gradlew :app:assembleDebug -q)",
+      "Bash(echo \"BUILD=$?\")"
     ]
   }
 }
