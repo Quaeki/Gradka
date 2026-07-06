@@ -140,11 +140,19 @@ SUPPORT_JWT_SECRET=replace-with-long-random-secret PORT=3002 npm start
 
 The orders service is located in `server/orders` and uses PostgreSQL. Orders and their items are stored in `orders` / `order_items` tables; the price list lives in the `products` table (seeded from `src/db/catalog.js` on start) and totals are always computed server-side — prices sent by a client are ignored.
 
-User endpoints (JWT): `GET /orders/` returns the caller's order history, `POST /orders/` places an order from cart items and an address. Operator endpoints (protected by `ORDERS_ADMIN_TOKEN`):
+User endpoints (JWT): `GET /orders/` returns the caller's order history, `POST /orders/` places an order from cart items and an address.
+
+Admin panel with an orders table, search (by number, phone, address, status), and status management:
+
+```text
+http://<server>/orders/admin/
+```
+
+Log in with `ORDERS_ADMIN_TOKEN`. The token is kept in sessionStorage and sent as the `X-Orders-Admin-Token` header with every API call. The same operator API is available via curl:
 
 ```bash
-# list latest orders
-curl http://127.0.0.1/orders/all -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN"
+# list latest orders, optionally filtered
+curl "http://127.0.0.1/orders/all?q=+998" -H "X-Orders-Admin-Token: $ORDERS_ADMIN_TOKEN"
 
 # update status by order number (created / confirmed / delivering / delivered / cancelled)
 curl -X PATCH http://127.0.0.1/orders/10001/status \

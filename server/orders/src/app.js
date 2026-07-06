@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const { createRateLimit } = require("./security/rateLimit");
 const { createOrderRoutes } = require("./routes/orderRoutes");
 
@@ -14,6 +15,14 @@ function createApp(config, pool) {
 
   app.get(["/health", "/orders/health"], (_req, res) => {
     res.json({ ok: true, service: "gradka-orders" });
+  });
+
+  // The admin panel page itself is public static content; every API call
+  // it makes is guarded by the X-Orders-Admin-Token header.
+  const adminDir = path.join(__dirname, "..", "public", "admin");
+  app.use("/orders/admin", express.static(adminDir));
+  app.get("/orders/admin/", (_req, res) => {
+    res.sendFile(path.join(adminDir, "index.html"));
   });
 
   app.use("/orders", createOrderRoutes({ config, pool }));

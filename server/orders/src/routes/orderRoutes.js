@@ -98,13 +98,42 @@ function createOrderRoutes({ config, pool }) {
   });
 
   // Operator endpoint: list latest orders across all users.
-  router.get("/all", requireAdmin(config.adminToken), async (_req, res, next) => {
+  // Optional ?q= searches by order number, phone, address, and status.
+  router.get("/all", requireAdmin(config.adminToken), async (req, res, next) => {
     try {
+      const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
       const result = await pool.query(
-        `SELECT id, user_id, user_phone, number, status, address_text, total, created_at
-         FROM orders ORDER BY created_at DESC LIMIT 100`,
+        `SELECT o.id, o.user_phone, o.number, o.status, o.address_text,
+                o.subtotal, o.delivery, o.total, o.created_at,
+                COALESCE(json_agg(json_build_object(
+                  'name', i.product_name,
+                  'price', i.price,
+                  'qty', i.qty
+                )) FILTER (WHERE i.order_id IS NOT NULL), '[]') AS items
+         FROM orders o
+         LEFT JOIN order_items i ON i.order_id = o.id
+         WHERE $1 = ''
+            OR o.number::text ILIKE '%' || $1 || '%'
+            OR o.user_phone ILIKE '%' || $1 || '%'
+            OR o.address_text ILIKE '%' || $1 || '%'
+            OR o.status ILIKE '%' || $1 || '%'
+         GROUP BY o.id
+         ORDER BY o.created_at DESC
+         LIMIT 100`,
+        [query],
       );
-      res.json(result.rows);
+      res.json(result.rows.map((row) => ({
+        id: row.id,
+        number: Number(row.number),
+        phone: row.user_phone,
+        status: row.status,
+        addressText: row.address_text,
+        subtotal: row.subtotal,
+        delivery: row.delivery,
+        total: row.total,
+        createdAtMillis: new Date(row.created_at).getTime(),
+        items: row.items,
+      })));
     } catch (error) {
       next(error);
     }
