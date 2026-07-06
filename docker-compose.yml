@@ -16,10 +16,10 @@ services:
     volumes:
       - auth_data:/app/data
 
-  support-chat:
+  support-telegram:
     build:
-      context: ./server/support-chat
-    container_name: gradka-support-chat
+      context: ./server/support-telegram
+    container_name: gradka-support-telegram
     restart: unless-stopped
     ports:
       # Loopback only for local debugging: external traffic goes through Caddy.
@@ -27,8 +27,9 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 3001
-      SUPPORT_ADMIN_TOKEN: ${SUPPORT_ADMIN_TOKEN:?SUPPORT_ADMIN_TOKEN is required}
       SUPPORT_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:?TELEGRAM_CHAT_ID is required}
       SUPPORT_CHAT_DATA_DIR: /app/data
     volumes:
       - support_chat_data:/app/data
@@ -39,7 +40,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
     environment:
       # Without DOMAIN Caddy serves plain HTTP on :80 (debug builds only).
       # Set DOMAIN=your-domain.ru in .env to enable automatic HTTPS via Let's Encrypt.
@@ -50,7 +50,7 @@ services:
       - caddy_config:/config
     depends_on:
       - auth
-      - support-chat
+      - support-telegram
 
 volumes:
   auth_data:

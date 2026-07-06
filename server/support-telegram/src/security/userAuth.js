@@ -17,6 +17,7 @@ function createUserAuth(jwtSecret) {
     }
 
     req.userId = userId;
+    req.userPhone = typeof payload.phone === "string" ? payload.phone : null;
     next();
   };
 }

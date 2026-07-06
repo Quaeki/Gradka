@@ -1,6 +1,6 @@
 # Gradka
 
-Gradka is an Android application for grocery delivery and farm product ordering. The project includes a product catalog, cart, checkout flow, delivery addresses, subscriptions, order history, OTP authentication, local persistence, payment method metadata, and an encrypted support chat with an operator panel.
+Gradka is an Android application for grocery delivery and farm product ordering. The project includes a product catalog, cart, checkout flow, delivery addresses, subscriptions, order history, OTP authentication, local persistence, payment method metadata, and a support chat relayed to the operator's Telegram.
 
 ## Features
 
@@ -9,7 +9,7 @@ Gradka is an Android application for grocery delivery and farm product ordering.
 - OTP authentication through a backend API.
 - Local persistence with Room for orders, subscriptions, notes, addresses, payment methods, and support messages.
 - Secure local token storage with Android Keystore.
-- Encrypted support chat with an operator web panel and a Node.js support-chat service.
+- In-app support chat relayed to the operator's Telegram through a Node.js service and the Telegram Bot API.
 - Dependency injection with Hilt and asynchronous data flow with Coroutines/Flow.
 
 ## Technology Stack
@@ -25,16 +25,17 @@ Gradka is an Android application for grocery delivery and farm product ordering.
 - Firebase Analytics
 - Yandex MapKit and Google Play Services Location
 - Dokka for HTML API documentation
-- Node.js and Express for the support-chat service
+- Node.js and Express for the backend services (auth, support-telegram)
 
 ## Project Structure
 
 - `app/` - Android application module.
 - `app/src/main/java/com/example/gradka/domain/` - domain models, repository contracts, and use cases.
 - `app/src/main/java/com/example/gradka/data/` - repository implementations, Room DAO models, and network API DTOs.
-- `app/src/main/java/com/example/gradka/security/` - Android Keystore based token storage and E2EE helpers.
+- `app/src/main/java/com/example/gradka/security/` - Android Keystore based encrypted storage helpers.
 - `app/src/main/java/com/example/gradka/ui/` - Compose screens, UI components, and theme.
-- `server/support-chat/` - support chat API and operator panel.
+- `server/auth/` - OTP authentication API.
+- `server/support-telegram/` - support chat API relaying messages to Telegram.
 
 ## Local Configuration
 
@@ -82,40 +83,34 @@ Generated documentation is written to:
 app/build/dokka/html
 ```
 
-## Support Chat Server
+## Support Chat Server (Telegram relay)
 
-The support-chat service is located in `server/support-chat`.
+The support-telegram service is located in `server/support-telegram`. Messages written in the app are delivered to the operator's personal Telegram chat through a bot; the operator answers with Telegram's "Reply" on the relayed message, and the service routes the answer back to the right app user via long polling (no public webhook URL required).
 
-Install dependencies:
+Setup:
 
-```bash
-cd server/support-chat
-npm install
-```
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the bot token into `TELEGRAM_BOT_TOKEN`.
+2. Get your personal chat id from [@userinfobot](https://t.me/userinfobot) and put it into `TELEGRAM_CHAT_ID`.
+3. Open your bot in Telegram and press Start so it can message you.
 
 Run locally:
 
 ```bash
-SUPPORT_ADMIN_TOKEN=replace-with-long-random-token \
-SUPPORT_JWT_SECRET=replace-with-auth-backend-jwt-secret \
+cd server/support-telegram
+npm install
+SUPPORT_JWT_SECRET=replace-with-long-random-secret \
+TELEGRAM_BOT_TOKEN=replace-with-botfather-token \
+TELEGRAM_CHAT_ID=replace-with-your-chat-id \
 PORT=3001 npm start
 ```
 
-`SUPPORT_JWT_SECRET` must be the same HS256 secret the auth service uses to sign access tokens (both services read it from the shared `.env` in Docker deployment). The support-chat service verifies the JWT signature and expiry of every user request and takes the user identity from the `sub` (or `userId`/`id`) claim. Requests without a valid token are rejected.
+`SUPPORT_JWT_SECRET` must be the same HS256 secret the auth service uses to sign access tokens (both services read it from the shared `.env` in Docker deployment). The service verifies the JWT signature and expiry of every request and takes the user identity from the `sub` claim.
 
 Optional environment variables:
 
-- `SUPPORT_ALLOWED_ORIGINS` - comma-separated browser origins allowed via CORS. Empty by default; the operator panel is served from the same origin and does not need CORS.
 - `SUPPORT_RATE_LIMIT_WINDOW_MS` / `SUPPORT_RATE_LIMIT_MAX_REQUESTS` - per-IP rate limit (default 120 requests per 60 seconds).
-- `SUPPORT_MAX_MESSAGES_PER_CONVERSATION` - message history cap per conversation (default 500, oldest messages are dropped).
-
-Operator panel:
-
-```text
-http://127.0.0.1:3001/operator/
-```
-
-The support chat server stores encrypted messages and metadata only. The operator private key is kept in the browser and must not be stored on the API server.
+- `SUPPORT_MAX_MESSAGES_PER_USER` - message history cap per user (default 500, oldest messages are dropped).
+- `SUPPORT_MAX_MESSAGE_LENGTH` - maximum message length (default 1000 characters).
 
 ## Auth Server
 
@@ -138,23 +133,24 @@ SUPPORT_JWT_SECRET=replace-with-long-random-secret PORT=3002 npm start
 
 ## Docker Deployment
 
-The Docker configuration runs three containers: the auth service, the support-chat service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.
+The Docker configuration runs three containers: the auth service, the support-telegram service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.
 
 Create a local `.env` file from the example and fill it in:
 
 ```bash
 cp .env.example .env
-openssl rand -hex 32   # run twice: once for SUPPORT_ADMIN_TOKEN, once for SUPPORT_JWT_SECRET
+openssl rand -hex 32   # generate the value for SUPPORT_JWT_SECRET
 ```
 
 ```env
-SUPPORT_ADMIN_TOKEN=<random token for the operator panel>
 SUPPORT_JWT_SECRET=<random shared JWT secret>
+TELEGRAM_BOT_TOKEN=<bot token from @BotFather>
+TELEGRAM_CHAT_ID=<your chat id from @userinfobot>
 #DOMAIN=your-domain.ru
 #SMS_RU_API_ID=
 ```
 
-The auth and support-chat containers bind to loopback only; all public traffic goes through Caddy (ports 80/443). Without `DOMAIN`, Caddy serves plain HTTP on port 80 — this works only with debug builds of the app. Set `DOMAIN` to a domain whose A record points to the server and Caddy will obtain and renew a Let's Encrypt certificate automatically; release builds require an HTTPS `API_BASE_URL`.
+The auth and support-telegram containers bind to loopback only; all public traffic goes through Caddy (ports 80/443). Without `DOMAIN`, Caddy serves plain HTTP on port 80 — this works only with debug builds of the app. Set `DOMAIN` to a domain whose A record points to the server and Caddy will obtain and renew a Let's Encrypt certificate automatically; release builds require an HTTPS `API_BASE_URL`.
 
 Build and run the backend container:
 
@@ -165,7 +161,7 @@ docker compose up -d --build
 Check logs:
 
 ```bash
-docker compose logs -f support-chat
+docker compose logs -f support-telegram
 ```
 
 Health check:

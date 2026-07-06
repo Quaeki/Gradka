@@ -21,7 +21,7 @@ interface SupportChatRepository {
     suspend fun addMessage(message: SupportMessage)
 
     /**
-     * Removes all local support messages and resets the stored remote conversation metadata.
+     * Removes the support chat history locally and on the backend.
      */
     suspend fun clearMessages()
 
@@ -31,7 +31,7 @@ interface SupportChatRepository {
     suspend fun hasMessages(): Boolean
 
     /**
-     * Loads the latest encrypted remote messages and stores their local decrypted view.
+     * Loads the latest remote messages (including operator replies) and updates the local copy.
      */
     suspend fun syncMessages()
 }

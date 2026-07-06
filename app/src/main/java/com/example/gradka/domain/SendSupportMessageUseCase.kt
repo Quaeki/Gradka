@@ -5,7 +5,7 @@ import javax.inject.Inject
 
 /**
  * Use Case для отправки сообщения в чат поддержки.
- * Сообщения шифруются E2EE перед сохранением и передачей.
+ * Сообщение доставляется оператору в Telegram через сервер-релей.
  */
 class SendSupportMessageUseCase @Inject constructor(
     private val repository: SupportChatRepository,

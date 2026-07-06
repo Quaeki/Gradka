@@ -9,7 +9,6 @@ import com.example.gradka.domain.AddSubscriptionUseCase
 import com.example.gradka.domain.Address
 import com.example.gradka.domain.CalculateSubscriptionSummaryUseCase
 import com.example.gradka.domain.ClearSupportChatUseCase
-import com.example.gradka.domain.SupportKeyChangedException
 import com.example.gradka.domain.DeleteAddressUseCase
 import com.example.gradka.domain.DeleteNoteUseCase
 import com.example.gradka.domain.DeletePaymentMethodUseCase
@@ -374,11 +373,8 @@ class SupportChatViewModel @Inject constructor(
     }
 
     private fun Throwable?.toUserMessage(): String =
-        when {
-            this == null -> "Не удалось синхронизировать чат"
-            this is SupportKeyChangedException ->
-                "Ключ поддержки изменился. Очистите чат, чтобы принять новый ключ"
-            message?.contains("409") == true -> "Сначала зарегистрируйте ключ оператора в панели поддержки"
+        when (this) {
+            null -> "Не удалось синхронизировать чат"
             else -> "Нет связи с поддержкой. Попробуем обновить чат автоматически"
         }
 
