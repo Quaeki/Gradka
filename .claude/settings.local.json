@@ -64,7 +64,16 @@
       "Bash(curl -sS -m 10 http://193.233.232.214/health)",
       "Bash(curl -sS -m 10 -i -X POST http://193.233.232.214/auth/send-code -H 'content-type: application/json' -d '{\"phone\":\"+998901234567\"}')",
       "Bash(./gradlew :app:assembleDebug -q)",
-      "Bash(echo \"BUILD=$?\")"
+      "Bash(echo \"BUILD=$?\")",
+      "WebSearch",
+      "WebFetch(domain:core.telegram.org)",
+      "WebFetch(domain:vc.ru)",
+      "Bash(docker info *)",
+      "Bash(docker exec *)",
+      "Bash(node /private/tmp/claude-501/-Users-kaiser-AndroidStudioProjects-Gradka/9e84de66-4a1b-4163-bb98-b17ac233699e/scratchpad/smoke-orders.js)",
+      "Bash(docker stop *)",
+      "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z POSTGRES_PASSWORD=p ORDERS_ADMIN_TOKEN=a docker compose config -q)",
+      "Bash(echo \"TESTS=$?\")"
     ]
   }
 }
