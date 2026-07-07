@@ -31,9 +31,11 @@ const config = {
   // Claude-powered display names for raw price-list product names.
   // Without ANTHROPIC_API_KEY the catalog serves raw names as is.
   naming: {
-    apiKey: process.env.ANTHROPIC_API_KEY || "",
-    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
-    baseUrl: process.env.ANTHROPIC_BASE_URL || "",
+    apiKey: (process.env.ANTHROPIC_API_KEY || "").trim(),
+    // trim + срез хвостовой точки: частая ошибка копирования из документации
+    // («claude-sonnet-4-5.» вместо «claude-sonnet-4-5»)
+    model: (process.env.ANTHROPIC_MODEL || "claude-opus-4-8").trim().replace(/\.$/, ""),
+    baseUrl: (process.env.ANTHROPIC_BASE_URL || "").trim(),
     intervalMillis: Number(process.env.NAMING_INTERVAL_MS || 5 * 60 * 1000),
     maxProductsPerRun: Number(process.env.NAMING_MAX_PER_RUN || 400),
   },
