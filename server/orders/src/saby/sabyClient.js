@@ -57,9 +57,13 @@ class SabyClient {
     const body = await this.get(
       `/retail/nomenclature/price-list?pointId=${pointId}&actualDate=${today}`,
     );
-    const priceList = body?.priceLists?.[0];
-    if (!priceList) throw new Error("SABY_NO_PRICE_LISTS");
-    return priceList;
+    // Saby returns priceLists as an array or as an object map (an empty result
+    // comes back as {}), so normalize both shapes.
+    const raw = body?.priceLists;
+    const priceLists = (Array.isArray(raw) ? raw : Object.values(raw || {}).flat())
+      .filter((item) => item && item.id != null);
+    if (priceLists.length === 0) throw new Error("SABY_NO_PRICE_LISTS");
+    return priceLists[0];
   }
 
   // Loads the full nomenclature, transparently walking through pagination
@@ -71,7 +75,8 @@ class SabyClient {
         `/retail/v2/nomenclature/list?pointId=${pointId}&priceListId=${priceListId}` +
           `&withBalance=true&page=${page}&pageSize=25`,
       );
-      const pageRecords = body?.nomenclatures || body?.records || [];
+      const rawPage = body?.nomenclatures ?? body?.records ?? [];
+      const pageRecords = Array.isArray(rawPage) ? rawPage : Object.values(rawPage).flat();
       records.push(...pageRecords);
       const hasMore = body?.outcome?.hasMore ?? pageRecords.length === 25;
       if (!hasMore) break;
