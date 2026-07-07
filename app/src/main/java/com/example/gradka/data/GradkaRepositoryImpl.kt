@@ -57,8 +57,13 @@ class GradkaRepositoryImpl @Inject constructor(
     private val addresses = MutableStateFlow(ADDRESSES.toList())
     private val notesListFlow = MutableStateFlow<List<Note>>(listOf())
 
-    private val searchManager = SearchFactory.getInstance()
-        .createSearchManager(SearchManagerType.ONLINE)
+    // Ленивая инициализация обязательна: репозиторий создаётся в Application.onCreate
+    // (для фоновой загрузки каталога), когда MapKit ещё не инициализирован —
+    // нативный SearchFactory.getInstance() в этот момент падает с UnsatisfiedLinkError.
+    // Поиск адресов используется только после старта MainActivity, где MapKit уже готов.
+    private val searchManager by lazy {
+        SearchFactory.getInstance().createSearchManager(SearchManagerType.ONLINE)
+    }
 
     private val moscowBounds = BoundingBox(
         Point(55.49, 36.80),
