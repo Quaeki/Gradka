@@ -1,21 +1,11 @@
+const { isFolderRecord } = require("./sabyClient");
+
 // Synchronizes the products table with the Saby (СБИС) price list.
 // After a successful sync the Saby catalog fully replaces the seeded one:
 // items missing from Saby are deactivated, not deleted, so old orders keep
-// their references.
-
-// Maps Saby folder names to the app's category ids.
-const CATEGORY_BY_FOLDER = new Map([
-  ["овощи", "veg"],
-  ["фрукты", "fruit"],
-  ["молочное", "dairy"],
-  ["молочные продукты", "dairy"],
-  ["выпечка", "bakery"],
-  ["хлеб", "bakery"],
-  ["мясо", "meat"],
-  ["рыба", "fish"],
-  ["бакалея", "pantry"],
-]);
-
+// their references. A product's category is the name of its top-level Saby
+// folder («Кондитерка», «Кофе», …); the app builds its category chips from
+// these values dynamically.
 function startCatalogSync({ saby, pool, intervalMillis, pointId, priceListId, log = console }) {
   let stopped = false;
 
@@ -24,23 +14,40 @@ function startCatalogSync({ saby, pool, intervalMillis, pointId, priceListId, lo
     const resolvedPriceListId = priceListId || (await saby.getFirstPriceList(resolvedPointId)).id;
     const records = await saby.getAllNomenclature(resolvedPointId, resolvedPriceListId);
 
-    // Records include both folders and goods; folders have no price.
+    // Folder tree: hierarchicalId -> { name, parent } to resolve each item's
+    // top-level folder name.
     const folders = new Map();
     for (const record of records) {
-      if (record.cost == null && record.id != null) {
-        folders.set(record.id, String(record.name || "").toLowerCase());
+      const folderId = record.hierarchicalId ?? record.id;
+      if (isFolderRecord(record) && folderId != null) {
+        folders.set(folderId, {
+          name: String(record.name || "").trim(),
+          parent: record.hierarchicalParent ?? record.parent ?? null,
+        });
       }
     }
 
+    function topLevelFolderName(startFolderId) {
+      let currentId = startFolderId;
+      let name = null;
+      for (let depth = 0; depth < 20 && currentId != null; depth++) {
+        const folder = folders.get(currentId);
+        if (!folder) break;
+        name = folder.name || name;
+        currentId = folder.parent;
+      }
+      return name;
+    }
+
     const products = records
-      .filter((record) => record.cost != null && record.name)
+      .filter((record) => !isFolderRecord(record) && record.cost != null && record.name)
       .map((record) => ({
         id: `saby-${record.externalId || record.id}`,
         name: String(record.name),
         price: Math.round(Number(record.cost)),
         subtitle: record.description ? String(record.description) : null,
         unit: record.unit ? String(record.unit) : null,
-        category: CATEGORY_BY_FOLDER.get(folders.get(record.hierarchicalParent ?? record.parent) || "") || "all",
+        category: topLevelFolderName(record.hierarchicalParent ?? record.parent) || "all",
         imageUrl: Array.isArray(record.images) && record.images[0]
           ? new URL(record.images[0], saby.apiBase).toString()
           : null,

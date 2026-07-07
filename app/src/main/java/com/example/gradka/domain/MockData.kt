@@ -40,7 +40,7 @@ fun updateCatalog(products: List<Product>) {
     }
 }
 
-val CATEGORIES = listOf(
+private val DEFAULT_CATEGORIES = listOf(
     Category("all",    "Всё",      125f),
     Category("veg",    "Овощи",    135f),
     Category("fruit",  "Фрукты",   100f),
@@ -50,6 +50,33 @@ val CATEGORIES = listOf(
     Category("fish",   "Рыба",     200f),
     Category("pantry", "Бакалея",  65f),
 )
+
+/**
+ * Категории каталога, производные от текущего списка товаров.
+ *
+ * Для встроенного каталога — фиксированный набор с русскими названиями.
+ * Для каталога из Saby (СБИС) категориями становятся папки прайса
+ * («Кондитерка», «Кофе»…): id и название — имя папки, цвет — стабильный хеш.
+ */
+val CATEGORIES: List<Category>
+    get() {
+        val knownById = DEFAULT_CATEGORIES.associateBy { it.id }
+        val productCats = PRODUCTS.map { it.cat }.distinct().filter { it != "all" }
+        if (productCats.all { knownById.containsKey(it) }) return DEFAULT_CATEGORIES
+
+        return listOf(knownById.getValue("all")) + productCats.sorted().map { cat ->
+            knownById[cat] ?: Category(id = cat, label = cat, hue = stableHue(cat))
+        }
+    }
+
+/** Детеминированный оттенок (0–360) для категорий без заданного цвета. */
+private fun stableHue(value: String): Float {
+    var hash = 0
+    for (char in value) {
+        hash = (hash * 31 + char.code) % 360
+    }
+    return hash.toFloat()
+}
 
 val RECIPES = listOf(
     Recipe("r1", "Паста с томатами и базиликом", "25 мин", 7, 12f),

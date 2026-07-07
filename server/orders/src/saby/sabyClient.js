@@ -66,23 +66,50 @@ class SabyClient {
     return priceLists[0];
   }
 
-  // Loads the full nomenclature, transparently walking through pagination
-  // (the API caps pages at 25 records).
+  // Loads the full nomenclature. The API is hierarchical: a plain request
+  // returns only the top level, and folder contents are fetched with
+  // folder=<hierarchicalId>, so we breadth-first walk every folder
+  // (folders are marked with isParent) and page through each level.
   async getAllNomenclature(pointId, priceListId) {
+    const PAGE_SIZE = 500;
     const records = [];
-    for (let page = 0; page < 200; page++) {
-      const body = await this.get(
-        `/retail/v2/nomenclature/list?pointId=${pointId}&priceListId=${priceListId}` +
-          `&withBalance=true&page=${page}&pageSize=25`,
-      );
-      const rawPage = body?.nomenclatures ?? body?.records ?? [];
-      const pageRecords = Array.isArray(rawPage) ? rawPage : Object.values(rawPage).flat();
-      records.push(...pageRecords);
-      const hasMore = body?.outcome?.hasMore ?? pageRecords.length === 25;
-      if (!hasMore) break;
+    const folderQueue = [null]; // null = catalog root
+    const visitedFolders = new Set();
+
+    while (folderQueue.length > 0) {
+      const folderId = folderQueue.shift();
+      if (folderId != null) {
+        if (visitedFolders.has(folderId)) continue;
+        visitedFolders.add(folderId);
+      }
+
+      for (let page = 0; page < 200; page++) {
+        const folderParam = folderId != null ? `&folder=${folderId}` : "";
+        const body = await this.get(
+          `/retail/v2/nomenclature/list?pointId=${pointId}&priceListId=${priceListId}` +
+            `&withBalance=true&page=${page}&pageSize=${PAGE_SIZE}${folderParam}`,
+        );
+        const rawPage = body?.nomenclatures ?? body?.records ?? [];
+        const pageRecords = Array.isArray(rawPage) ? rawPage : Object.values(rawPage).flat();
+
+        for (const record of pageRecords) {
+          records.push(record);
+          const childFolderId = record.hierarchicalId ?? record.id;
+          if (isFolderRecord(record) && childFolderId != null) {
+            folderQueue.push(childFolderId);
+          }
+        }
+
+        const hasMore = body?.outcome?.hasMore ?? pageRecords.length === PAGE_SIZE;
+        if (!hasMore) break;
+      }
     }
     return records;
   }
 }
 
-module.exports = { SabyClient };
+function isFolderRecord(record) {
+  return record?.isParent === true || (record?.isParent == null && record?.cost == null);
+}
+
+module.exports = { SabyClient, isFolderRecord };
