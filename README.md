@@ -170,7 +170,7 @@ With `SABY_APP_CLIENT_ID`, `SABY_APP_SECRET`, and `SABY_SECRET_KEY` set (externa
 
 ### AI-generated product names
 
-With `ANTHROPIC_API_KEY` set (console.anthropic.com), the orders service rewrites raw price-list names into storefront names with Claude: «кулич 0,3 изюм» → «Кулич с изюмом, 300 г». Names are generated in batches with a strict JSON schema (structured outputs), cached in the `products` table, and regenerated only when the source name changes in Saby — each unique name is billed once. The catalog endpoint and order items serve the display name; the raw name stays in the database. Model defaults to `claude-opus-4-8` (`ANTHROPIC_MODEL=claude-haiku-4-5` is a cheaper option). Without the key the catalog serves raw names unchanged.
+With `ANTHROPIC_API_KEY` set, the orders service rewrites raw price-list names into storefront names with Claude: «кулич 0,3 изюм» → «Кулич с изюмом, 300 г». Both direct Anthropic keys (`sk-ant-...`, console.anthropic.com) and AITunnel keys (`sk-aitunnel-...`, aitunnel.ru — оплата в рублях) work: AITunnel keys are detected automatically and requests go to `api.aitunnel.ru` with Bearer auth; if the proxy rejects structured outputs, the service falls back to plain-JSON prompting. Names are generated in batches with a strict JSON schema (structured outputs), cached in the `products` table, and regenerated only when the source name changes in Saby — each unique name is billed once. The catalog endpoint and order items serve the display name; the raw name stays in the database. Model defaults to `claude-opus-4-8` (`ANTHROPIC_MODEL=claude-haiku-4-5` is a cheaper option). Without the key the catalog serves raw names unchanged.
 
 ## Docker Deployment
 

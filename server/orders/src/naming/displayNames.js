@@ -45,9 +45,13 @@ function startDisplayNameGenerator({ pool, config, log = console }) {
     return { stop: () => {}, runOnce: async () => 0 };
   }
 
+  // AITunnel (российский прокси к Claude) авторизует только через
+  // Authorization: Bearer и живёт на своём base URL.
+  const isAitunnel = config.apiKey.startsWith("sk-aitunnel");
+  const baseUrl = config.baseUrl || (isAitunnel ? "https://api.aitunnel.ru" : "");
   const client = new Anthropic({
-    apiKey: config.apiKey,
-    ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
+    ...(isAitunnel ? { authToken: config.apiKey, apiKey: null } : { apiKey: config.apiKey }),
+    ...(baseUrl ? { baseURL: baseUrl } : {}),
   });
   let stopped = false;
 
@@ -100,13 +104,28 @@ function startDisplayNameGenerator({ pool, config, log = console }) {
 }
 
 async function generateBatch(client, model, names) {
-  const response = await client.messages.create({
-    model,
-    max_tokens: 16000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: JSON.stringify({ names }) }],
-    output_config: { format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
-  });
+  let response;
+  try {
+    response = await client.messages.create({
+      model,
+      max_tokens: 16000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: JSON.stringify({ names }) }],
+      output_config: { format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
+    });
+  } catch (error) {
+    // Прокси (например, AITunnel) может не поддерживать structured outputs —
+    // повторяем без схемы и просим строгий JSON текстом.
+    if (!(error instanceof Anthropic.BadRequestError)) throw error;
+    response = await client.messages.create({
+      model,
+      max_tokens: 16000,
+      system:
+        SYSTEM_PROMPT +
+        '\n\nОтветь СТРОГО одним JSON-объектом вида {"items":[{"original":"...","display":"..."}]} — без пояснений и без markdown.',
+      messages: [{ role: "user", content: JSON.stringify({ names }) }],
+    });
+  }
 
   const result = new Map();
   if (response.stop_reason === "refusal") return result;
@@ -114,7 +133,7 @@ async function generateBatch(client, model, names) {
   const textBlock = response.content.find((block) => block.type === "text");
   if (!textBlock) return result;
 
-  const parsed = JSON.parse(textBlock.text);
+  const parsed = JSON.parse(extractJson(textBlock.text));
   for (const item of parsed.items || []) {
     const display = String(item.display || "").trim();
     if (item.original && display) {
@@ -122,6 +141,14 @@ async function generateBatch(client, model, names) {
     }
   }
   return result;
+}
+
+// Вырезает JSON-объект из ответа, даже если модель обернула его в ```json ... ```.
+function extractJson(text) {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return text;
+  return text.slice(start, end + 1);
 }
 
 function sleep(millis) {

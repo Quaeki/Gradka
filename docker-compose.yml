@@ -36,6 +36,7 @@ services:
       SABY_PRICE_LIST_ID: ${SABY_PRICE_LIST_ID:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
