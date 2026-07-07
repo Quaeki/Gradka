@@ -80,7 +80,23 @@
       "Bash(adb logcat *)",
       "Bash(adb emu *)",
       "Bash(adb shell *)",
-      "Bash(awk '{printf \"%-6s %5s%% CPU  %5.0f MB  %s\\\\n\", $2, $3, $6/1024, $11}')"
+      "Bash(awk '{printf \"%-6s %5s%% CPU  %5.0f MB  %s\\\\n\", $2, $3, $6/1024, $11}')",
+      "Bash(curl -sS -m 8 http://193.233.232.214/orders/all)",
+      "Bash(curl -sS -m 8 http://193.233.232.214/health)",
+      "Bash(git fetch *)",
+      "Bash(~/Library/Android/sdk/emulator/emulator -list-avds)",
+      "Read(//Users/kaiser/.android/avd/Pixel_8_Pro.avd/**)",
+      "Bash(sysctl -n hw.memsize hw.ncpu)",
+      "Bash(nohup ~/Library/Android/sdk/emulator/emulator -avd Pixel_8_Pro)",
+      "Bash(adb wait-for-device *)",
+      "WebFetch(domain:saby.ru)",
+      "Bash(SUPPORT_JWT_SECRET=x TELEGRAM_BOT_TOKEN=y TELEGRAM_CHAT_ID=z POSTGRES_PASSWORD=p ORDERS_ADMIN_PASSWORD=a docker compose config -q)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(curl -sS -m 8 http://193.233.232.214/orders/catalog)",
+      "Bash(python3 -c \"import json,sys; items=json.load\\(sys.stdin\\); print\\(len\\(items\\), 'товаров'\\); [print\\(f\\\\\"- {p['name']}: {p['price']} ₽ \\({p['unit'] or '—'}\\) cat={p['cat']}\\\\\"\\) for p in items[:12]]\")",
+      "Bash(./gradlew :app:installDebug -q)",
+      "Bash(echo \"INSTALL=$?\")",
+      "Bash(grep -oE 'text=\"[^\"]{3,30}\"')"
     ]
   }
 }
