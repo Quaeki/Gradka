@@ -4,6 +4,7 @@ const { createRateLimit } = require("./security/rateLimit");
 const { createOrderRoutes } = require("./routes/orderRoutes");
 const { SabyClient } = require("./saby/sabyClient");
 const { startCatalogSync } = require("./saby/catalogSync");
+const { startDisplayNameGenerator } = require("./naming/displayNames");
 
 function createApp(config, pool, overrides = {}) {
   if (!config.jwtSecret) throw new Error("SUPPORT_JWT_SECRET is required");
@@ -34,6 +35,10 @@ function createApp(config, pool, overrides = {}) {
     const status = err.statusCode || 500;
     res.status(status).json({ error: err.statusCode ? err.message : "INTERNAL_ERROR" });
   });
+
+  if (!overrides.skipNaming) {
+    app.locals.displayNames = startDisplayNameGenerator({ pool, config: config.naming });
+  }
 
   const sabyConfigured =
     config.saby.appClientId && config.saby.appSecret && config.saby.secretKey;

@@ -21,7 +21,9 @@ async function migrate(pool) {
       ADD COLUMN IF NOT EXISTS hue       REAL,
       ADD COLUMN IF NOT EXISTS badge     TEXT,
       ADD COLUMN IF NOT EXISTS farm      TEXT,
-      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS display_name     TEXT,
+      ADD COLUMN IF NOT EXISTS display_name_for TEXT;
 
     CREATE SEQUENCE IF NOT EXISTS order_number_seq START 10000;
 

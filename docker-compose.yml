@@ -34,6 +34,8 @@ services:
       SABY_SECRET_KEY: ${SABY_SECRET_KEY:-}
       SABY_POINT_ID: ${SABY_POINT_ID:-}
       SABY_PRICE_LIST_ID: ${SABY_PRICE_LIST_ID:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
     depends_on:
       postgres:
         condition: service_healthy

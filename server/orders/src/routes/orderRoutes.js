@@ -19,7 +19,8 @@ function createOrderRoutes({ config, pool }) {
   router.get("/catalog", async (_req, res, next) => {
     try {
       const result = await pool.query(
-        `SELECT id, name, price, subtitle, unit, category, image_url, hue, badge, farm
+        `SELECT id, COALESCE(display_name, name) AS name, price, subtitle, unit,
+                category, image_url, hue, badge, farm
          FROM products WHERE is_active ORDER BY name`,
       );
       res.json(result.rows.map((row) => ({
@@ -60,7 +61,7 @@ function createOrderRoutes({ config, pool }) {
         : "";
 
       const productRows = await client.query(
-        "SELECT id, name, price FROM products WHERE id = ANY($1)",
+        "SELECT id, COALESCE(display_name, name) AS name, price FROM products WHERE id = ANY($1)",
         [items.value.map((item) => item.productId)],
       );
       const products = new Map(productRows.rows.map((row) => [row.id, row]));

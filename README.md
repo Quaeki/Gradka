@@ -168,6 +168,10 @@ The app loads the product catalog from `GET /orders/catalog` on startup (the bun
 
 With `SABY_APP_CLIENT_ID`, `SABY_APP_SECRET`, and `SABY_SECRET_KEY` set (external application keys from the Saby cabinet), the orders service synchronizes the `products` table with the Saby Retail price list every 10 minutes: service authorization via `online.sbis.ru/oauth/service/`, then `retail/v2/nomenclature/list` with pagination. Names, prices, units, descriptions, and images come from Saby; products missing from the price list are deactivated. Saby folder names («Овощи», «Фрукты», «Молочное»…) map to the app's category ids; unknown folders fall back to «Всё». Without the keys the seeded catalog is used as is.
 
+### AI-generated product names
+
+With `ANTHROPIC_API_KEY` set (console.anthropic.com), the orders service rewrites raw price-list names into storefront names with Claude: «кулич 0,3 изюм» → «Кулич с изюмом, 300 г». Names are generated in batches with a strict JSON schema (structured outputs), cached in the `products` table, and regenerated only when the source name changes in Saby — each unique name is billed once. The catalog endpoint and order items serve the display name; the raw name stays in the database. Model defaults to `claude-opus-4-8` (`ANTHROPIC_MODEL=claude-haiku-4-5` is a cheaper option). Without the key the catalog serves raw names unchanged.
+
 ## Docker Deployment
 
 The Docker configuration runs five containers: PostgreSQL, the auth service, the orders service, the support-telegram service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.

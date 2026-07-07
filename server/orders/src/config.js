@@ -28,6 +28,15 @@ const config = {
     authUrl: process.env.SABY_AUTH_URL || "https://online.sbis.ru/oauth/service/",
     syncIntervalMillis: Number(process.env.SABY_SYNC_INTERVAL_MS || 10 * 60 * 1000),
   },
+  // Claude-powered display names for raw price-list product names.
+  // Without ANTHROPIC_API_KEY the catalog serves raw names as is.
+  naming: {
+    apiKey: process.env.ANTHROPIC_API_KEY || "",
+    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    baseUrl: process.env.ANTHROPIC_BASE_URL || "",
+    intervalMillis: Number(process.env.NAMING_INTERVAL_MS || 5 * 60 * 1000),
+    maxProductsPerRun: Number(process.env.NAMING_MAX_PER_RUN || 400),
+  },
 };
 
 module.exports = { config };
