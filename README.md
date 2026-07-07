@@ -162,6 +162,12 @@ curl -X PATCH http://127.0.0.1/orders/10001/status \
 
 The app shows synced statuses on the orders screen (created → «Оформлен», delivering → «В пути», and so on).
 
+### Product catalog and Saby (СБИС) integration
+
+The app loads the product catalog from `GET /orders/catalog` on startup (the bundled list remains an offline fallback). The catalog is served from the `products` table.
+
+With `SABY_APP_CLIENT_ID`, `SABY_APP_SECRET`, and `SABY_SECRET_KEY` set (external application keys from the Saby cabinet), the orders service synchronizes the `products` table with the Saby Retail price list every 10 minutes: service authorization via `online.sbis.ru/oauth/service/`, then `retail/v2/nomenclature/list` with pagination. Names, prices, units, descriptions, and images come from Saby; products missing from the price list are deactivated. Saby folder names («Овощи», «Фрукты», «Молочное»…) map to the app's category ids; unknown folders fall back to «Всё». Without the keys the seeded catalog is used as is.
+
 ## Docker Deployment
 
 The Docker configuration runs five containers: PostgreSQL, the auth service, the orders service, the support-telegram service, and Caddy as the single public entry point. The Android application is built with Gradle as an APK.

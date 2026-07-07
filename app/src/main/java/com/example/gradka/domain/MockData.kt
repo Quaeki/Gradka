@@ -1,6 +1,10 @@
 package com.example.gradka.domain
 
-val PRODUCTS = listOf(
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
+private val DEFAULT_PRODUCTS = listOf(
     Product("p1",  "Молоко фермерское",   "Рузское · 3,6%",         189, "1 л",    "dairy",   52f,  null,   "Рузское поле"),
     Product("p2",  "Яйца деревенские",    "Перепёлка · C1",          249, "10 шт",  "dairy",   38f,  "new",  "Ферма Ильиных"),
     Product("p3",  "Хлеб ржаной",         "На закваске",             159, "450 г",  "bakery",  28f,  null,   "Пекарня Квашня"),
@@ -18,6 +22,23 @@ val PRODUCTS = listOf(
     Product("p15", "Зелень микс",         "Укроп, петрушка, лук",    129, "100 г",  "veg",     140f, null,   "Теплицы Юга"),
     Product("p16", "Лосось филе",         "Охлаждённый",             1290,"500 г",  "fish",    18f,  null,   "Мурманский порт"),
 )
+
+/**
+ * Актуальный каталог товаров.
+ *
+ * По умолчанию — встроенный список (офлайн-фолбэк). После успешной загрузки
+ * каталога с сервера ([updateCatalog]) значение подменяется, и все экраны,
+ * читающие [PRODUCTS], перерисовываются автоматически (Compose state).
+ */
+var PRODUCTS: List<Product> by mutableStateOf(DEFAULT_PRODUCTS)
+    private set
+
+/** Подменяет каталог на загруженный с сервера. Пустой список игнорируется. */
+fun updateCatalog(products: List<Product>) {
+    if (products.isNotEmpty()) {
+        PRODUCTS = products
+    }
+}
 
 val CATEGORIES = listOf(
     Category("all",    "Всё",      125f),

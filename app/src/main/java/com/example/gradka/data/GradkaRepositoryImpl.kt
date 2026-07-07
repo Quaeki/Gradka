@@ -19,9 +19,10 @@ import com.example.gradka.domain.AddressSuggestion
 import com.example.gradka.domain.GradkaRepository
 import com.example.gradka.domain.Note
 import com.example.gradka.domain.Order
-import com.example.gradka.domain.PRODUCTS
 import com.example.gradka.domain.PaymentMethod
+import com.example.gradka.domain.Product
 import com.example.gradka.domain.Subscription
+import com.example.gradka.domain.updateCatalog
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.search.Response
@@ -88,6 +89,23 @@ class GradkaRepositoryImpl @Inject constructor(
     override suspend fun syncOrders() {
         val orders = ordersApi.getOrders(requireAccessToken())
         orderDao.replaceOrders(orders.map { it.toDbModel() })
+    }
+
+    override suspend fun syncCatalog() {
+        val products = ordersApi.getCatalog().map { dto ->
+            Product(
+                id = dto.id,
+                name = dto.name,
+                subtitle = dto.subtitle,
+                price = dto.price,
+                unit = dto.unit,
+                cat = dto.cat,
+                hue = dto.hue,
+                badge = dto.badge,
+                farm = dto.farm,
+            )
+        }
+        updateCatalog(products)
     }
 
     private fun requireAccessToken(): String =

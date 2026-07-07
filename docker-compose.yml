@@ -29,6 +29,11 @@ services:
       SUPPORT_JWT_SECRET: ${SUPPORT_JWT_SECRET:?SUPPORT_JWT_SECRET is required}
       DATABASE_URL: postgres://gradka:${POSTGRES_PASSWORD}@postgres:5432/gradka
       ORDERS_ADMIN_PASSWORD: ${ORDERS_ADMIN_PASSWORD:?ORDERS_ADMIN_PASSWORD is required}
+      SABY_APP_CLIENT_ID: ${SABY_APP_CLIENT_ID:-}
+      SABY_APP_SECRET: ${SABY_APP_SECRET:-}
+      SABY_SECRET_KEY: ${SABY_SECRET_KEY:-}
+      SABY_POINT_ID: ${SABY_POINT_ID:-}
+      SABY_PRICE_LIST_ID: ${SABY_PRICE_LIST_ID:-}
     depends_on:
       postgres:
         condition: service_healthy

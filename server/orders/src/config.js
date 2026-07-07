@@ -15,6 +15,19 @@ const config = {
   // Delivery pricing must match the in-app cart summary rules.
   freeDeliveryThreshold: Number(process.env.ORDERS_FREE_DELIVERY_THRESHOLD || 1500),
   deliveryPrice: Number(process.env.ORDERS_DELIVERY_PRICE || 149),
+  // Saby (СБИС) Retail integration: with all three keys set, the products table
+  // is synchronized with the Saby price list on an interval.
+  saby: {
+    appClientId: process.env.SABY_APP_CLIENT_ID || "",
+    appSecret: process.env.SABY_APP_SECRET || "",
+    secretKey: process.env.SABY_SECRET_KEY || "",
+    // Optional overrides; by default the first sales point and price list are used.
+    pointId: process.env.SABY_POINT_ID || "",
+    priceListId: process.env.SABY_PRICE_LIST_ID || "",
+    apiBase: process.env.SABY_API_BASE || "https://api.sbis.ru",
+    authUrl: process.env.SABY_AUTH_URL || "https://online.sbis.ru/oauth/service/",
+    syncIntervalMillis: Number(process.env.SABY_SYNC_INTERVAL_MS || 10 * 60 * 1000),
+  },
 };
 
 module.exports = { config };

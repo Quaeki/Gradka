@@ -15,6 +15,30 @@ function createOrderRoutes({ config, pool }) {
   router.post("/admin/login", adminAuth.login);
   router.post("/admin/logout", adminAuth.logout);
 
+  // Public product catalog for the app (no auth: the catalog opens before login).
+  router.get("/catalog", async (_req, res, next) => {
+    try {
+      const result = await pool.query(
+        `SELECT id, name, price, subtitle, unit, category, image_url, hue, badge, farm
+         FROM products WHERE is_active ORDER BY name`,
+      );
+      res.json(result.rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        subtitle: row.subtitle || row.unit || "",
+        price: row.price,
+        unit: row.unit || "",
+        cat: row.category,
+        hue: row.hue != null ? Number(row.hue) : stableHue(row.id),
+        badge: row.badge,
+        farm: row.farm || "",
+        imageUrl: row.image_url,
+      })));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/", createUserAuth(config.jwtSecret), async (req, res, next) => {
     try {
       res.json(await loadOrders(pool, req.userId));
@@ -194,6 +218,15 @@ function parseItems(rawItems) {
     value.push({ productId, qty });
   }
   return { value };
+}
+
+// Deterministic hue (0-360) for products that came from Saby without a designed color.
+function stableHue(id) {
+  let hash = 0;
+  for (const char of String(id)) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
+  return hash;
 }
 
 module.exports = { createOrderRoutes };

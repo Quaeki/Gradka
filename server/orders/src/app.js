@@ -2,8 +2,10 @@ const express = require("express");
 const path = require("path");
 const { createRateLimit } = require("./security/rateLimit");
 const { createOrderRoutes } = require("./routes/orderRoutes");
+const { SabyClient } = require("./saby/sabyClient");
+const { startCatalogSync } = require("./saby/catalogSync");
 
-function createApp(config, pool) {
+function createApp(config, pool, overrides = {}) {
   if (!config.jwtSecret) throw new Error("SUPPORT_JWT_SECRET is required");
   if (!config.databaseUrl) throw new Error("DATABASE_URL is required");
 
@@ -32,6 +34,19 @@ function createApp(config, pool) {
     const status = err.statusCode || 500;
     res.status(status).json({ error: err.statusCode ? err.message : "INTERNAL_ERROR" });
   });
+
+  const sabyConfigured =
+    config.saby.appClientId && config.saby.appSecret && config.saby.secretKey;
+  if (sabyConfigured || overrides.saby) {
+    const saby = overrides.saby || new SabyClient(config.saby);
+    app.locals.catalogSync = startCatalogSync({
+      saby,
+      pool,
+      intervalMillis: config.saby.syncIntervalMillis,
+      pointId: config.saby.pointId,
+      priceListId: config.saby.priceListId,
+    });
+  }
 
   return app;
 }

@@ -16,7 +16,23 @@ interface OrdersApi {
         @Header("Authorization") bearerToken: String,
         @Body body: PlaceOrderRequest,
     ): RemoteOrderDto
+
+    @GET("orders/catalog")
+    suspend fun getCatalog(): List<CatalogProductDto>
 }
+
+data class CatalogProductDto(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val price: Int,
+    val unit: String,
+    val cat: String,
+    val hue: Float,
+    val badge: String?,
+    val farm: String,
+    val imageUrl: String?,
+)
 
 data class PlaceOrderRequest(
     val items: List<PlaceOrderItem>,
